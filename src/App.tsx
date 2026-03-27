@@ -1343,30 +1343,51 @@ export default function App() {
                   }
                 }
               } else if (element === 'POISON') {
-                createFloatingText(state, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "POISON ATTACK!", "#22c55e", true);
-                if (patternType === 0 || patternType === 3) {
-                  const bullets = Math.ceil(((8 + stage * 2 + style * 2) / 2) * bulletCountMult);
-                  for(let i=0; i<bullets; i++) {
-                    const angle = (i / bullets) * Math.PI * 2 + (state.frameCount * 0.1);
-                    state.enemyBullets.push({ id: Math.random(), x: e.x, y: e.y + e.size, vx: Math.cos(angle) * baseSpeed, vy: Math.sin(angle) * baseSpeed, type: 'POISON' });
+                const isAcidStalker = e.bossType === 'Acid Stalker';
+                createFloatingText(state, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, isAcidStalker ? "ACID ATTACK!" : "TOXIC ATTACK!", isAcidStalker ? "#84cc16" : "#22c55e", true);
+                
+                if (isAcidStalker) {
+                  // Acid Stalker: More aggressive homing and spread
+                  if (patternType === 0 || patternType === 3) {
+                    const bullets = Math.ceil(((10 + stage * 2 + style * 2) / 2) * bulletCountMult);
+                    for(let i=0; i<bullets; i++) {
+                      const angle = (i / bullets) * Math.PI * 2 + (state.frameCount * 0.15);
+                      state.enemyBullets.push({ id: Math.random(), x: e.x, y: e.y + e.size, vx: Math.cos(angle) * baseSpeed * 1.2, vy: Math.sin(angle) * baseSpeed * 1.2, type: 'POISON' });
+                    }
+                  } else if (patternType === 1 || patternType === 4) {
+                    const alivePlayers = state.players.filter(p => !p.isDead);
+                    if (alivePlayers.length > 0) {
+                      const target = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+                      for(let i=0; i<3; i++) {
+                        state.enemyBullets.push({ id: Math.random(), x: e.x, y: e.y + e.size, vx: (target.x - e.x) * 0.02, vy: (target.y - e.y) * 0.02, type: 'POISON' });
+                      }
+                    }
+                  } else {
+                    const rainCount = Math.ceil((10 + stage) * bulletCountMult);
+                    for(let i=0; i<rainCount; i++) {
+                      state.enemyBullets.push({ id: Math.random(), x: Math.random() * CANVAS_WIDTH, y: -50, vx: (Math.random()-0.5) * 2, vy: baseSpeed * 0.9, type: 'POISON' });
+                    }
                   }
-                } else if (patternType === 1 || patternType === 4) {
-                  const bullets = Math.ceil(((5 + stage + style) / 2) * bulletCountMult);
-                  for(let i=0; i<bullets; i++) {
-                    const angle = (state.frameCount * 0.05) + (i * (0.5 - style * 0.05));
-                    state.enemyBullets.push({ id: Math.random(), x: e.x, y: e.y + e.size, vx: Math.cos(angle) * baseSpeed * 1.2, vy: Math.sin(angle) * baseSpeed * 1.2, type: 'POISON' });
+                } else {
+                  // Toxic Cloud: Area denial (Rain and Clouds)
+                  if (patternType === 0 || patternType === 3) {
+                    const rainCount = Math.ceil((20 + stage * 2) * bulletCountMult);
+                    for(let i=0; i<rainCount; i++) {
+                      state.enemyBullets.push({ id: Math.random(), x: Math.random() * CANVAS_WIDTH, y: -50, vx: (Math.random()-0.5) * 0.5, vy: baseSpeed * 0.5, type: 'POISON' });
+                    }
+                  } else if (patternType === 1 || patternType === 4) {
+                    const bullets = Math.ceil(((5 + stage + style) / 2) * bulletCountMult);
+                    for(let i=0; i<bullets; i++) {
+                      const angle = (state.frameCount * 0.05) + (i * (0.5 - style * 0.05));
+                      state.enemyBullets.push({ id: Math.random(), x: e.x, y: e.y + e.size, vx: Math.cos(angle) * baseSpeed * 0.8, vy: Math.sin(angle) * baseSpeed * 0.8, type: 'POISON' });
+                    }
+                  } else {
+                    const alivePlayers = state.players.filter(p => !p.isDead);
+                    if (alivePlayers.length > 0) {
+                      const target = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+                      state.enemyBullets.push({ id: Math.random(), x: e.x, y: e.y + e.size, vx: (target.x - e.x) * 0.005, vy: (target.y - e.y) * 0.005, type: 'POISON' });
+                    }
                   }
-                } else if (patternType === 2) { // Poison Rain
-                   const rainCount = Math.ceil((15 + stage * 2) * bulletCountMult);
-                   for(let i=0; i<rainCount; i++) {
-                     state.enemyBullets.push({ id: Math.random(), x: Math.random() * CANVAS_WIDTH, y: -50, vx: (Math.random()-0.5), vy: baseSpeed * 0.7, type: 'POISON' });
-                   }
-                } else { // Homing Poison
-                   const alivePlayers = state.players.filter(p => !p.isDead);
-                   if (alivePlayers.length > 0) {
-                     const target = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
-                     state.enemyBullets.push({ id: Math.random(), x: e.x, y: e.y + e.size, vx: (target.x - e.x) * 0.01, vy: (target.y - e.y) * 0.01, type: 'POISON' });
-                   }
                 }
               } else if (element === 'ICE') {
                 createFloatingText(state, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "ICE ATTACK!", "#00FFFF", true);
