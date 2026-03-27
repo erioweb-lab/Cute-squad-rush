@@ -26,9 +26,20 @@
           "type": "string",
           "format": "date-time",
           "description": "Last time the progress was saved."
+        },
+        "stats": {
+          "type": "object",
+          "properties": {
+            "totalKills": { "type": "integer" },
+            "totalCoins": { "type": "integer" },
+            "totalScore": { "type": "integer" },
+            "maxStage": { "type": "integer" },
+            "claimedAchievements": { "type": "array", "items": { "type": "string" } }
+          },
+          "required": ["totalKills", "totalCoins", "totalScore", "maxStage", "claimedAchievements"]
         }
       },
-      "required": ["coins", "highScore", "upgrades", "updatedAt"]
+      "required": ["coins", "highScore", "upgrades", "stats", "updatedAt"]
     }
   },
   "firestore": {
