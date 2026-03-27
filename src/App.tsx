@@ -8,6 +8,7 @@ import {
   BOSS_HP_MULTIPLIER, BOSS_BULLET_COUNT_MULTIPLIER, BULLET_POWER_MULTIPLIER, FEVER_SPEED_MULTIPLIER, FEVER_COMBO_THRESHOLD,
   LEVEL_UP_ATTACK_SPEED_INCREASE, LEVEL_UP_BULLET_SIZE_INCREASE, FEVER_DAMAGE_MULTIPLIER,
   FEVER_ATTACK_SPEED_MULTIPLIER, BOSS_DAMAGE_MULTIPLIER, BULLET_COUNT_HP_THRESHOLD, MAX_DRONES,
+  MAX_SHIELDS, MAX_BOMBS,
   BULLET_DAMAGE_HP_SCALING, CHAR_FIRE_DURATION, CHAR_FIRE_TICK_RATE, CHAR_FIRE_TICK_DAMAGE,
   DRONE_BASE_FIRE_RATE, DRONE_ATTACK_SPEED_MULTIPLIER, PLAYER_ATTACK_SPEED_MULTIPLIER, PLAYER_DAMAGE_MULTIPLIER, PLAYER_MIN_DAMAGE_HP_EQUIVALENT,
   PIERCE_BASE_PROBABILITY, PIERCE_PROBABILITY_PER_LEVEL,
@@ -863,6 +864,7 @@ export default function App() {
           p.fireTimer--;
           if (p.fireTimer % ENEMY_FIRE_TICK_RATE === 0) {
             p.count = Math.max(1, p.count - ENEMY_FIRE_TICK_DAMAGE);
+            vibrate(20);
             state.screenShake = 5;
             createParticles(state, p.x, p.y, '#ef4444', 10);
           }
@@ -871,6 +873,7 @@ export default function App() {
           p.poisonTimer--;
           if (p.poisonTimer % ENEMY_POISON_TICK_RATE === 0) {
             p.count = Math.max(1, p.count - ENEMY_POISON_TICK_DAMAGE);
+            vibrate(20);
             state.screenShake = 5;
             createParticles(state, p.x, p.y, '#22c55e', 10);
           }
@@ -1803,6 +1806,7 @@ export default function App() {
                  createParticles(state, e.x, e.y, '#FF0000', 50);
                  playSound('explosion');
                  // Bomb damages player if too close
+                 let droneAbsorbed = false;
                  state.players.forEach(p => {
                     if (p.isDead) return;
                     const playerStage = getPlayerStage(p.count);
@@ -1814,11 +1818,14 @@ export default function App() {
                          p.shield--;
                       } else {
                          let damage = ENEMY_BOMB_DAMAGE;
-                         if (state.drones.length > 0) {
+                         if (state.drones.length > 0 && !droneAbsorbed) {
                            state.drones.pop();
+                           droneAbsorbed = true;
                            damage = Math.max(0, damage - 5);
                            createFloatingText(state, p.x, p.y, "DRONE ABSORBED!", "#00FFFF");
                            createParticles(state, p.x, p.y, "#00FFFF", 20);
+                         } else if (droneAbsorbed) {
+                           damage = Math.max(0, damage - 5);
                          }
                          p.count -= damage;
                          playSound('hit');
@@ -1873,6 +1880,7 @@ export default function App() {
       for (let j = state.enemies.length - 1; j >= 0; j--) {
         const e = state.enemies[j];
         let enemyRemoved = false;
+        let droneAbsorbedThisEnemy = false;
         state.players.forEach(p => {
           if (p.isDead || enemyRemoved) return;
           const playerStage = getPlayerStage(p.count);
@@ -1885,11 +1893,14 @@ export default function App() {
             if (e.type === 'BOSS') {
               if (state.frameCount % 10 === 0) {
                 let damage = 10;
-                if (state.drones.length > 0) {
+                if (state.drones.length > 0 && !droneAbsorbedThisEnemy) {
                   state.drones.pop();
+                  droneAbsorbedThisEnemy = true;
                   damage = Math.max(0, damage - 5);
                   createFloatingText(state, p.x, p.y, "DRONE ABSORBED!", "#00FFFF");
                   createParticles(state, p.x, p.y, "#00FFFF", 20);
+                } else if (droneAbsorbedThisEnemy) {
+                  damage = Math.max(0, damage - 5);
                 }
                 p.count -= damage;
                 vibrate(50);
@@ -1915,11 +1926,14 @@ export default function App() {
                 }
                 
                 let finalDamage = damage;
-                if (state.drones.length > 0) {
+                if (state.drones.length > 0 && !droneAbsorbedThisEnemy) {
                   state.drones.pop();
+                  droneAbsorbedThisEnemy = true;
                   finalDamage = Math.max(0, damage - 5);
                   createFloatingText(state, p.x, p.y, "DRONE ABSORBED!", "#00FFFF");
                   createParticles(state, p.x, p.y, "#00FFFF", 20);
+                } else if (droneAbsorbedThisEnemy) {
+                  finalDamage = Math.max(0, damage - 5);
                 }
                 
                 p.count -= finalDamage;
@@ -1936,6 +1950,7 @@ export default function App() {
                    createParticles(state, e.x, e.y, '#FF0000', 50);
                    playSound('explosion');
                    // Bomb damages all nearby players
+                   let droneAbsorbed = false;
                    state.players.forEach(p_inner => {
                       if (p_inner.isDead) return;
                       const playerStage_inner = getPlayerStage(p_inner.count);
@@ -1948,13 +1963,17 @@ export default function App() {
                             p_inner.shield--;
                          } else {
                             let damage = ENEMY_BOMB_DAMAGE;
-                            if (state.drones.length > 0) {
+                            if (state.drones.length > 0 && !droneAbsorbed) {
                               state.drones.pop();
+                              droneAbsorbed = true;
                               damage = Math.max(0, damage - 5);
                               createFloatingText(state, p_inner.x, p_inner.y, "DRONE ABSORBED!", "#00FFFF");
                               createParticles(state, p_inner.x, p_inner.y, "#00FFFF", 20);
+                            } else if (droneAbsorbed) {
+                              damage = Math.max(0, damage - 5);
                             }
                             p_inner.count -= damage;
+                            vibrate(50);
                             playSound('hit');
                             if (damage > 0) createFloatingText(state, p_inner.x, p_inner.y, `-${damage} (BOMB)`, "#FF0000");
                          }
@@ -1973,6 +1992,7 @@ export default function App() {
       for (let i = state.enemyBullets.length - 1; i >= 0; i--) {
         const b = state.enemyBullets[i];
         let hit = false;
+        let droneAbsorbed = false;
         state.players.forEach(p => {
           if (p.isDead || hit) return;
           const playerStage = getPlayerStage(p.count);
@@ -2019,11 +2039,14 @@ export default function App() {
               }
               
               let finalDamage = damage;
-              if (state.drones.length > 0) {
+              if (state.drones.length > 0 && !droneAbsorbed) {
                 state.drones.pop();
+                droneAbsorbed = true;
                 finalDamage = Math.max(0, damage - 5);
                 createFloatingText(state, p.x, p.y, "DRONE ABSORBED!", "#00FFFF");
                 createParticles(state, p.x, p.y, "#00FFFF", 20);
+              } else if (droneAbsorbed) {
+                finalDamage = Math.max(0, damage - 5);
               }
               
               p.count -= finalDamage;
@@ -2065,8 +2088,12 @@ export default function App() {
               createFloatingText(state, item.x, item.y, "FEVER!", "#FFFF00");
             } else if (item.type === 'BOMB') {
               vibrate(100);
-              p.bombCount++;
-              createFloatingText(state, p.x, p.y - 40, "BOMB ACQUIRED!", "#FF0000");
+              if (p.bombCount < MAX_BOMBS) {
+                p.bombCount++;
+                createFloatingText(state, p.x, p.y - 40, "BOMB ACQUIRED!", "#FF0000");
+              } else {
+                createFloatingText(state, p.x, p.y - 40, "MAX BOMBS!", "#FF6B6B");
+              }
               playSound('powerup');
             } else if (item.type === 'DRONE') {
               if (state.drones.length < MAX_DRONES) {
@@ -2076,8 +2103,13 @@ export default function App() {
                 createFloatingText(state, p.x, p.y, "MAX DRONES!", "#FF6B6B");
               }
             } else if (item.type === 'SHIELD') {
-              p.shield += (1 + state.squadSkills.shieldDuration);
-              createFloatingText(state, p.x, p.y, `SHIELD +${1 + state.squadSkills.shieldDuration}`, "#0000FF");
+              const shieldGain = (1 + state.squadSkills.shieldDuration);
+              if (p.shield < MAX_SHIELDS) {
+                p.shield = Math.min(MAX_SHIELDS, p.shield + shieldGain);
+                createFloatingText(state, p.x, p.y, `SHIELD +${shieldGain}`, "#0000FF");
+              } else {
+                createFloatingText(state, p.x, p.y, "MAX SHIELDS!", "#FF6B6B");
+              }
             } else if (item.type === 'MAGNET') {
               p.magnetTime = 600;
               createFloatingText(state, p.x, p.y, "MAGNET!", "#FF00FF");
@@ -3092,6 +3124,14 @@ export default function App() {
     }
   };
 
+  const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (gameState.current.status !== 'PLAYING') return;
+    // Detonate bomb if two fingers touch the screen
+    if (e.touches.length >= 2) {
+      useBomb(0);
+    }
+  };
+
   return (
     <ErrorBoundary>
       <div className="fixed inset-0 bg-slate-900 flex items-center justify-center p-0 sm:p-4 font-sans select-none overflow-hidden">
@@ -3103,6 +3143,7 @@ export default function App() {
             className="w-full h-full touch-none cursor-crosshair"
             onPointerDown={(e) => { handlePointerMove(e); handleMouseDown(e); }}
             onPointerMove={handlePointerMove}
+            onTouchStart={handleTouchStart}
           />
           
           {reactStateStatus === 'PLAYING' && (
@@ -3419,10 +3460,12 @@ export default function App() {
                   <Gamepad2 size={20} /> 조작 방법
                 </h3>
                 <ul className="text-sm text-zinc-300 space-y-2">
-                  <li><span className="font-bold text-white">이동</span>: <kbd className="bg-zinc-700 px-1 rounded">WASD</kbd> 또는 <kbd className="bg-zinc-700 px-1 rounded">방향키</kbd></li>
-                  <li><span className="font-bold text-white">폭탄</span>: <kbd className="bg-zinc-700 px-1 rounded">B</kbd> 또는 <kbd className="bg-zinc-700 px-1 rounded">스페이스바</kbd></li>
+                  <li><span className="font-bold text-white">이동</span>: <kbd className="bg-zinc-700 px-1 rounded">WASD</kbd> 또는 <kbd className="bg-zinc-700 px-1 rounded">방향키</kbd> (모바일: 드래그)</li>
+                  <li><span className="font-bold text-white">폭탄</span>: <kbd className="bg-zinc-700 px-1 rounded">B</kbd> 또는 <kbd className="bg-zinc-700 px-1 rounded">스페이스바</kbd> (모바일: <span className="text-red-400 font-bold">두 손가락 터치</span>)</li>
                   <li><kbd className="bg-zinc-700 px-1 rounded">M</kbd> : 도움말 켜기/끄기</li>
                   <li><kbd className="bg-zinc-700 px-1 rounded">P</kbd> : 게임 일시 정지</li>
+                  <li className="text-xs text-slate-400 pt-2 border-t border-white/5">* 모바일에서 피격 시 햅틱 반응(진동)이 제공됩니다.</li>
+                  <li className="text-xs text-slate-400">* 보호막과 폭탄은 최대 3개까지 보유 가능합니다.</li>
                 </ul>
               </section>
 

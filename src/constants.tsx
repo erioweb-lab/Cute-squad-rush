@@ -140,6 +140,8 @@ export const FEVER_ATTACK_SPEED_MULTIPLIER = 1.1; // 피버 모드 공격 속도
 export const BOSS_DAMAGE_MULTIPLIER = 4.0; // 보스 공격력 배율
 export const BULLET_COUNT_HP_THRESHOLD = 20; // HP당 탄환 증가 기준
 export const MAX_DRONES = 8; // 최대 드론 수
+export const MAX_SHIELDS = 3; // 최대 쉴드 수
+export const MAX_BOMBS = 3; // 최대 폭탄 수
 export const BULLET_DAMAGE_HP_SCALING = 1.0; // HP에 따른 데미지 배율
 
 // [Player -> Enemy] Character Special Bullets (캐릭터 특수 탄환)
