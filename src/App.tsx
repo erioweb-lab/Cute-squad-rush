@@ -480,7 +480,7 @@ export default function App() {
         bossFireBulletImgObj, bossIceBulletImgObj, bossPoisonBulletImgObj, bossElectricBulletImgObj, bossLaserBulletImgObj,
         ...backgrounds
       ] = await Promise.all([
-        loadLocalImage('https://picsum.photos/seed/puppy_base/100/100'),
+        loadLocalImage(dog1),
         loadLocalImage(bossGalleryPngSrc),
         loadLocalImage(coinImg),
         loadLocalImage(blackBombImg),

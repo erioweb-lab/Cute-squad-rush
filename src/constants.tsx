@@ -68,6 +68,20 @@ import bg11 from './assets/background/bg11.png';
 import bg12 from './assets/background/bg12.png';
 import victoryPose from './assets/victory_pose.png';
 
+// Boss Images
+import acidStalkerImg from './assets/bosses/acid_stalker.png';
+import ancientCoreImg from './assets/bosses/ancient_core.png';
+import beamSentinelImg from './assets/bosses/beam_sentinel.png';
+import iceMonarchImg from './assets/bosses/ice_monarch.png';
+import infernoKingImg from './assets/bosses/inferno_king.png';
+import rockCrackerImg from './assets/bosses/rock_cracker.png';
+import thunderDragonImg from './assets/bosses/thunder_dragon.png';
+import toxicCloudImg from './assets/bosses/toxic_cloud.png';
+import voidEntityImg from './assets/bosses/void_entity.png';
+import voidGlitchImg from './assets/bosses/void_glitch.png';
+import voltSpikerImg from './assets/bosses/volt_spiker.png';
+import vortexBringerImg from './assets/bosses/vortex_bringer.png';
+
 export {
   cat1, cat2, cat3, cat4, cat5,
   dog1, dog2, dog3, dog4, dog5,
@@ -78,7 +92,9 @@ export {
   bossFireBulletImg, bossIceBulletImg, bossPoisonBulletImg, bossElectricBulletImg, bossLaserBulletImg,
   coinImg, blackBombImg, feverImg, heartImg, magnetImg, critImg, criticalBulletImg, shieldImg,
   fireAmmoImg, freezeImg, poisonAmmoImg, homingAmmoImg, iceAmmoImg,
-  bg1, bg2, bg3, bg4, bg5, bg6, bg7, bg8, bg9, bg10, bg11, bg12, victoryPose
+  bg1, bg2, bg3, bg4, bg5, bg6, bg7, bg8, bg9, bg10, bg11, bg12, victoryPose,
+  acidStalkerImg, ancientCoreImg, beamSentinelImg, iceMonarchImg, infernoKingImg, rockCrackerImg,
+  thunderDragonImg, toxicCloudImg, voidEntityImg, voidGlitchImg, voltSpikerImg, vortexBringerImg
 };
 
 // --- Game Constants (상수 설정) ---
@@ -209,11 +225,11 @@ export const BOSS_HEALTH_CONFIG = {
 export const STAGE_BACKGROUNDS = [bg1, bg2, bg3, bg4, bg5, bg6, bg7, bg8, bg9, bg10, bg11, bg12, bg1];
 
 // Fallback high-quality images for characters (since local ones are empty)
-export const CAT_PLACEHOLDER = 'https://picsum.photos/seed/cat_game_v1/400/400'; // 고양이 이미지 플레이스홀더
-export const DOG_PLACEHOLDER = 'https://picsum.photos/seed/dog_game_v1/400/400'; // 강아지 이미지 플레이스홀더
-export const RABBIT_PLACEHOLDER = 'https://picsum.photos/seed/rabbit_game_v1/400/400'; // 토끼 이미지 플레이스홀더
-export const RAT_PLACEHOLDER = 'https://picsum.photos/seed/rat_game_v1/400/400'; // 쥐 이미지 플레이스홀더
-export const bossGalleryPngSrc = 'https://picsum.photos/seed/boss_gallery/400/400'; // 보스 갤러리 이미지 플레이스홀더
+export const CAT_PLACEHOLDER = cat1; // 고양이 이미지 플레이스홀더
+export const DOG_PLACEHOLDER = dog1; // 강아지 이미지 플레이스홀더
+export const RABBIT_PLACEHOLDER = rabbit1; // 토끼 이미지 플레이스홀더
+export const RAT_PLACEHOLDER = rat1; // 쥐 이미지 플레이스홀더
+export const bossGalleryPngSrc = voidEntityImg; // Use internal image as fallback
 
 declare global {
   interface Window {
@@ -234,19 +250,19 @@ export const getPlayerStage = (count: number): number => {
 };
 export const ANIMALS = ['fluffy puppy', 'cute bear', 'white rabbit', 'orange fox', 'chubby panda'];
 export const BOSSES = [
-  { name: 'Inferno King', effect: 'FIRE', image: '/src/assets/bosses/inferno_king.png', prompt: 'A spherical fire boss with a golden crown, glowing magma cracks, intense heat, launching fireballs, 3D render, octane render, high detail, volumetric lighting, cinematic.', bg: '#FBE9E7', grid: '#FFAB91', ...BOSS_FIRING_CONFIG.INFERNO_KING, hp: BOSS_HEALTH_CONFIG.INFERNO_KING },
-  { name: 'Ice Monarch', effect: 'ICE', image: '/src/assets/bosses/ice_monarch.png', prompt: 'A spherical ice boss with sharp snowflake patterns, translucent crystalline texture, freezing aura, firing ice shards, 3D render, octane render, high detail, cinematic.', bg: '#E0F7FA', grid: '#80DEEA', ...BOSS_FIRING_CONFIG.ICE_MONARCH, hp: BOSS_HEALTH_CONFIG.ICE_MONARCH },
-  { name: 'Vortex Bringer', effect: 'WATERFALL', image: '/src/assets/bosses/vortex_bringer.png', prompt: 'A spherical water boss with swirling vortex patterns, liquid dynamics, splashing droplets, deluge of water, 3D render, octane render, high detail, cinematic.', bg: '#E3F2FD', grid: '#90CAF9', ...BOSS_FIRING_CONFIG.VORTEX_BRINGER, hp: BOSS_HEALTH_CONFIG.VORTEX_BRINGER },
-  { name: 'Thunder Dragon', effect: 'THUNDER', image: '/src/assets/bosses/thunder_dragon.png', prompt: 'A spherical dragon-themed boss with glowing green eyes, crackling lightning aura, summoning lightning, 3D render, octane render, high detail, cinematic.', bg: '#ECEFF1', grid: '#90A4AE', ...BOSS_FIRING_CONFIG.THUNDER_DRAGON, hp: BOSS_HEALTH_CONFIG.THUNDER_DRAGON },
-  { name: 'Toxic Cloud', effect: 'POISON', image: '/src/assets/bosses/toxic_cloud.png', prompt: 'A spherical poison boss surrounded by toxic clouds and potion bottles, swirling green gas, releasing toxic gas, 3D render, octane render, high detail, cinematic.', bg: '#F1F8E9', grid: '#C5E1A5', ...BOSS_FIRING_CONFIG.TOXIC_CLOUD, hp: BOSS_HEALTH_CONFIG.TOXIC_CLOUD },
-  { name: 'Acid Stalker', effect: 'POISON', image: '/src/assets/bosses/acid_stalker.png', prompt: 'A spherical acid boss with insectoid features, dripping green acid, shooting acid drops, 3D render, octane render, high detail, cinematic.', bg: '#F1F8E9', grid: '#C5E1A5', ...BOSS_FIRING_CONFIG.ACID_STALKER, hp: BOSS_HEALTH_CONFIG.ACID_STALKER },
-  { name: 'Volt Spiker', effect: 'ELECTRIC', image: '/src/assets/bosses/volt_spiker.png', prompt: 'A spherical electric boss with radiating spikes, crackling electricity, firing electric spikes, 3D render, octane render, high detail, cinematic.', bg: '#FFFDE7', grid: '#FFF59D', ...BOSS_FIRING_CONFIG.VOLT_SPIKER, hp: BOSS_HEALTH_CONFIG.VOLT_SPIKER },
-  { name: 'Rock Cracker', effect: 'EARTHQUAKE', image: '/src/assets/bosses/rock_cracker.png', prompt: 'A spherical rock boss with rocky texture and a drill, cracking the ground, 3D render, octane render, high detail, cinematic.', bg: '#EFEBE9', grid: '#BCAAA4', ...BOSS_FIRING_CONFIG.ROCK_CRACKER, hp: BOSS_HEALTH_CONFIG.ROCK_CRACKER },
-  { name: 'Beam Sentinel', effect: 'LASER', image: '/src/assets/bosses/beam_sentinel.png', prompt: 'A spherical laser boss with a central camera lens focus, mechanical rings, firing laser beams, 3D render, octane render, high detail, cinematic.', bg: '#F3E5F5', grid: '#CE93D8', ...BOSS_FIRING_CONFIG.BEAM_SENTINEL, hp: BOSS_HEALTH_CONFIG.BEAM_SENTINEL },
-  { name: 'Void Glitch', effect: 'ALL', image: '/src/assets/bosses/void_glitch.png', prompt: 'A spherical void boss with glitchy reality patches, dark matter, creating reality glitches, 3D render, octane render, high detail, cinematic.', bg: '#FAFAFA', grid: '#EEEEEE', ...BOSS_FIRING_CONFIG.VOID_GLITCH, hp: BOSS_HEALTH_CONFIG.VOID_GLITCH },
-  { name: 'Void Entity', effect: 'ALL', image: '/src/assets/bosses/void_entity.png', prompt: 'A spherical void entity with purple glitchy patches, dark matter, creating reality glitches, 3D render, octane render, high detail, cinematic.', bg: '#FAFAFA', grid: '#EEEEEE', ...BOSS_FIRING_CONFIG.VOID_ENTITY, hp: BOSS_HEALTH_CONFIG.VOID_ENTITY },
-  { name: 'Ancient Core', effect: 'LASER', image: '/src/assets/bosses/ancient_core.png', prompt: 'A spherical ancient mechanical boss, made of rusty bronze and copper gears, intricate clockwork mechanisms, central keyhole, 3D render, octane render, high detail, cinematic.', bg: '#FFF3E0', grid: '#FFCC80', ...BOSS_FIRING_CONFIG.ANCIENT_CORE, hp: BOSS_HEALTH_CONFIG.ANCIENT_CORE },
-  { name: 'The Ultimate Void', effect: 'ALL', image: '/src/assets/bosses/void_entity.png', prompt: 'A massive, terrifying spherical void boss, the ultimate glitch in reality, multiple eyes, dark matter tentacles, reality-warping aura, 3D render, octane render, high detail, cinematic.', bg: '#000000', grid: '#333333', ...BOSS_FIRING_CONFIG.ULTIMATE_VOID, hp: BOSS_HEALTH_CONFIG.ULTIMATE_VOID }
+  { name: 'Inferno King', effect: 'FIRE', image: infernoKingImg, prompt: 'A spherical fire boss with a golden crown, glowing magma cracks, intense heat, launching fireballs, 3D render, octane render, high detail, volumetric lighting, cinematic.', bg: '#FBE9E7', grid: '#FFAB91', ...BOSS_FIRING_CONFIG.INFERNO_KING, hp: BOSS_HEALTH_CONFIG.INFERNO_KING },
+  { name: 'Ice Monarch', effect: 'ICE', image: iceMonarchImg, prompt: 'A spherical ice boss with sharp snowflake patterns, translucent crystalline texture, freezing aura, firing ice shards, 3D render, octane render, high detail, cinematic.', bg: '#E0F7FA', grid: '#80DEEA', ...BOSS_FIRING_CONFIG.ICE_MONARCH, hp: BOSS_HEALTH_CONFIG.ICE_MONARCH },
+  { name: 'Vortex Bringer', effect: 'WATERFALL', image: vortexBringerImg, prompt: 'A spherical water boss with swirling vortex patterns, liquid dynamics, splashing droplets, deluge of water, 3D render, octane render, high detail, cinematic.', bg: '#E3F2FD', grid: '#90CAF9', ...BOSS_FIRING_CONFIG.VORTEX_BRINGER, hp: BOSS_HEALTH_CONFIG.VORTEX_BRINGER },
+  { name: 'Thunder Dragon', effect: 'THUNDER', image: thunderDragonImg, prompt: 'A spherical dragon-themed boss with glowing green eyes, crackling lightning aura, summoning lightning, 3D render, octane render, high detail, cinematic.', bg: '#ECEFF1', grid: '#90A4AE', ...BOSS_FIRING_CONFIG.THUNDER_DRAGON, hp: BOSS_HEALTH_CONFIG.THUNDER_DRAGON },
+  { name: 'Toxic Cloud', effect: 'POISON', image: toxicCloudImg, prompt: 'A spherical poison boss surrounded by toxic clouds and potion bottles, swirling green gas, releasing toxic gas, 3D render, octane render, high detail, cinematic.', bg: '#F1F8E9', grid: '#C5E1A5', ...BOSS_FIRING_CONFIG.TOXIC_CLOUD, hp: BOSS_HEALTH_CONFIG.TOXIC_CLOUD },
+  { name: 'Acid Stalker', effect: 'POISON', image: acidStalkerImg, prompt: 'A spherical acid boss with insectoid features, dripping green acid, shooting acid drops, 3D render, octane render, high detail, cinematic.', bg: '#F1F8E9', grid: '#C5E1A5', ...BOSS_FIRING_CONFIG.ACID_STALKER, hp: BOSS_HEALTH_CONFIG.ACID_STALKER },
+  { name: 'Volt Spiker', effect: 'ELECTRIC', image: voltSpikerImg, prompt: 'A spherical electric boss with radiating spikes, crackling electricity, firing electric spikes, 3D render, octane render, high detail, cinematic.', bg: '#FFFDE7', grid: '#FFF59D', ...BOSS_FIRING_CONFIG.VOLT_SPIKER, hp: BOSS_HEALTH_CONFIG.VOLT_SPIKER },
+  { name: 'Rock Cracker', effect: 'EARTHQUAKE', image: rockCrackerImg, prompt: 'A spherical rock boss with rocky texture and a drill, cracking the ground, 3D render, octane render, high detail, cinematic.', bg: '#EFEBE9', grid: '#BCAAA4', ...BOSS_FIRING_CONFIG.ROCK_CRACKER, hp: BOSS_HEALTH_CONFIG.ROCK_CRACKER },
+  { name: 'Beam Sentinel', effect: 'LASER', image: beamSentinelImg, prompt: 'A spherical laser boss with a central camera lens focus, mechanical rings, firing laser beams, 3D render, octane render, high detail, cinematic.', bg: '#F3E5F5', grid: '#CE93D8', ...BOSS_FIRING_CONFIG.BEAM_SENTINEL, hp: BOSS_HEALTH_CONFIG.BEAM_SENTINEL },
+  { name: 'Void Glitch', effect: 'ALL', image: voidGlitchImg, prompt: 'A spherical void boss with glitchy reality patches, dark matter, creating reality glitches, 3D render, octane render, high detail, cinematic.', bg: '#FAFAFA', grid: '#EEEEEE', ...BOSS_FIRING_CONFIG.VOID_GLITCH, hp: BOSS_HEALTH_CONFIG.VOID_GLITCH },
+  { name: 'Void Entity', effect: 'ALL', image: voidEntityImg, prompt: 'A spherical void entity with purple glitchy patches, dark matter, creating reality glitches, 3D render, octane render, high detail, cinematic.', bg: '#FAFAFA', grid: '#EEEEEE', ...BOSS_FIRING_CONFIG.VOID_ENTITY, hp: BOSS_HEALTH_CONFIG.VOID_ENTITY },
+  { name: 'Ancient Core', effect: 'LASER', image: ancientCoreImg, prompt: 'A spherical ancient mechanical boss, made of rusty bronze and copper gears, intricate clockwork mechanisms, central keyhole, 3D render, octane render, high detail, cinematic.', bg: '#FFF3E0', grid: '#FFCC80', ...BOSS_FIRING_CONFIG.ANCIENT_CORE, hp: BOSS_HEALTH_CONFIG.ANCIENT_CORE },
+  { name: 'The Ultimate Void', effect: 'ALL', image: voidEntityImg, prompt: 'A massive, terrifying spherical void boss, the ultimate glitch in reality, multiple eyes, dark matter tentacles, reality-warping aura, 3D render, octane render, high detail, cinematic.', bg: '#000000', grid: '#333333', ...BOSS_FIRING_CONFIG.ULTIMATE_VOID, hp: BOSS_HEALTH_CONFIG.ULTIMATE_VOID }
 ];
 export const ITEMS = ['glowing banana', 'shiny star', 'magic shield', 'red heart', 'lightning bolt'];
 
