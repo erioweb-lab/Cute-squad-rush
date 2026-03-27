@@ -1,8 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Play, RotateCcw, Loader2, X, Gamepad2, Skull, Target, Info, Home, ShoppingCart, Trophy, Bomb as BombIcon } from 'lucide-react';
-import { auth, db, handleFirestoreError, OperationType } from './firebase';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 import {
   CANVAS_WIDTH, CANVAS_HEIGHT, CAT_SIZE, HITBOX_SCALE, PLAYER_CIRCLE_SCALE, PLAYER_IMAGE_SCALE, PLAYER_SPEED,
@@ -61,7 +58,6 @@ export default function App() {
   });
   const highScoreRef = useRef(highScore);
   useEffect(() => { highScoreRef.current = highScore; }, [highScore]);
-  const [user, setUser] = useState<User | null>(null);
   const [skillChoices, setSkillChoices] = useState<RogueliteSkill[]>([]);
   const [showShop, setShowShop] = useState(false);
   const [showPause, setShowPause] = useState(false);
@@ -385,11 +381,11 @@ export default function App() {
     </div>
   );
 
-  // Sync state to Firestore
-  const saveProgress = async (newCoins: number, newUpgrades: any, newHighScore: number, newStats?: Stats) => {
+  // Sync state to LocalStorage
+  const saveProgress = (newCoins: number, newUpgrades: any, newHighScore: number, newStats?: Stats) => {
     const currentStats = newStats || statsRef.current;
     
-    // Ensure all numeric values are integers to satisfy Firestore rules
+    // Ensure all numeric values are integers
     const safeCoins = Math.floor(newCoins || 0);
     const safeHighScore = Math.floor(newHighScore || 0);
     const safeStats = {
@@ -407,19 +403,6 @@ export default function App() {
       });
     }
 
-    if (auth.currentUser) {
-      try {
-        await setDoc(doc(db, 'users', auth.currentUser.uid), {
-          coins: safeCoins,
-          upgrades: safeUpgrades,
-          highScore: safeHighScore,
-          stats: safeStats,
-          updatedAt: serverTimestamp()
-        }, { merge: true });
-      } catch (error) {
-        handleFirestoreError(error, OperationType.WRITE, `users/${auth.currentUser.uid}`);
-      }
-    }
     localStorage.setItem('nano_banana_coins', safeCoins.toString());
     localStorage.setItem('nano_banana_upgrades', JSON.stringify(safeUpgrades));
     localStorage.setItem('nano_banana_highscore', safeHighScore.toString());
@@ -427,46 +410,16 @@ export default function App() {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        try {
-          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-          if (userDoc.exists()) {
-            const data = userDoc.data();
-            setCoins(data.coins || 0);
-            setHighScore(data.highScore || 0);
-            setUpgrades(data.upgrades || {});
-            setStats(data.stats || {
-              totalKills: 0,
-              totalCoins: 0,
-              totalScore: 0,
-              maxStage: 0,
-              claimedAchievements: []
-            });
-            localStorage.setItem('nano_banana_coins', (data.coins || 0).toString());
-            localStorage.setItem('nano_banana_highscore', (data.highScore || 0).toString());
-            localStorage.setItem('nano_banana_upgrades', JSON.stringify(data.upgrades || {}));
-            localStorage.setItem('nano_banana_stats', JSON.stringify(data.stats || {
-              totalKills: 0,
-              totalCoins: 0,
-              totalScore: 0,
-              maxStage: 0,
-              claimedAchievements: []
-            }));
-          } else {
-            // Initial save for new user
-            await saveProgress(coins, upgrades, highScore, stats);
-          }
-        } catch (error) {
-          if (error instanceof Error && error.message.includes('operationType')) {
-            throw error;
-          }
-          handleFirestoreError(error, OperationType.GET, `users/${currentUser.uid}`);
-        }
-      }
-    });
-    return () => unsubscribe();
+    // Load initial data from localStorage
+    const savedCoins = parseInt(localStorage.getItem('nano_banana_coins') || '0');
+    const savedHighScore = parseInt(localStorage.getItem('nano_banana_highscore') || '0');
+    const savedUpgrades = JSON.parse(localStorage.getItem('nano_banana_upgrades') || '{}');
+    const savedStats = JSON.parse(localStorage.getItem('nano_banana_stats') || 'null');
+
+    if (savedCoins) setCoins(savedCoins);
+    if (savedHighScore) setHighScore(savedHighScore);
+    if (savedUpgrades) setUpgrades(savedUpgrades);
+    if (savedStats) setStats(savedStats);
   }, []);
   
   
@@ -1859,9 +1812,16 @@ export default function App() {
                       if (p.shield > 0) {
                          p.shield--;
                       } else {
-                         p.count -= ENEMY_BOMB_DAMAGE;
+                         let damage = ENEMY_BOMB_DAMAGE;
+                         if (state.drones.length > 0) {
+                           state.drones.pop();
+                           damage = Math.max(0, damage - 5);
+                           createFloatingText(state, p.x, p.y, "DRONE ABSORBED!", "#00FFFF");
+                           createParticles(state, p.x, p.y, "#00FFFF", 20);
+                         }
+                         p.count -= damage;
                          playSound('hit');
-                         createFloatingText(state, p.x, p.y, `-${ENEMY_BOMB_DAMAGE} (BOMB)`, "#FF0000");
+                         if (damage > 0) createFloatingText(state, p.x, p.y, `-${damage} (BOMB)`, "#FF0000");
                       }
                     }
                  });
@@ -1923,11 +1883,18 @@ export default function App() {
           if (dist < playerRadius + e.size) {
             if (e.type === 'BOSS') {
               if (state.frameCount % 10 === 0) {
-                p.count -= 10;
+                let damage = 10;
+                if (state.drones.length > 0) {
+                  state.drones.pop();
+                  damage = Math.max(0, damage - 5);
+                  createFloatingText(state, p.x, p.y, "DRONE ABSORBED!", "#00FFFF");
+                  createParticles(state, p.x, p.y, "#00FFFF", 20);
+                }
+                p.count -= damage;
                 vibrate(50);
                 playSound('hit');
                 createParticles(state, p.x, p.y, '#FFA500', 10);
-                createFloatingText(state, p.x, p.y, "-10", "#FF0000");
+                if (damage > 0) createFloatingText(state, p.x, p.y, `-${damage}`, "#FF0000");
                 state.screenShake = 5;
               }
             } else {
@@ -1946,12 +1913,20 @@ export default function App() {
                   p.playerFreezeTimer = ENEMY_ICE_DURATION; // 2 seconds
                 }
                 
-                p.count -= damage;
+                let finalDamage = damage;
+                if (state.drones.length > 0) {
+                  state.drones.pop();
+                  finalDamage = Math.max(0, damage - 5);
+                  createFloatingText(state, p.x, p.y, "DRONE ABSORBED!", "#00FFFF");
+                  createParticles(state, p.x, p.y, "#00FFFF", 20);
+                }
+                
+                p.count -= finalDamage;
                 vibrate(50);
                 playSound('hit');
                 e.hp -= damage;
                 createParticles(state, p.x, p.y, '#FFA500', 10);
-                createFloatingText(state, p.x, p.y, `-${damage}`, "#FF0000");
+                if (finalDamage > 0) createFloatingText(state, p.x, p.y, `-${finalDamage}`, "#FF0000");
                 state.screenShake = 3;
               }
               if (e.hp <= 0) {
@@ -1971,9 +1946,16 @@ export default function App() {
                          if (p_inner.shield > 0) {
                             p_inner.shield--;
                          } else {
-                            p_inner.count -= ENEMY_BOMB_DAMAGE;
+                            let damage = ENEMY_BOMB_DAMAGE;
+                            if (state.drones.length > 0) {
+                              state.drones.pop();
+                              damage = Math.max(0, damage - 5);
+                              createFloatingText(state, p_inner.x, p_inner.y, "DRONE ABSORBED!", "#00FFFF");
+                              createParticles(state, p_inner.x, p_inner.y, "#00FFFF", 20);
+                            }
+                            p_inner.count -= damage;
                             playSound('hit');
-                            createFloatingText(state, p_inner.x, p_inner.y, `-${ENEMY_BOMB_DAMAGE} (BOMB)`, "#FF0000");
+                            if (damage > 0) createFloatingText(state, p_inner.x, p_inner.y, `-${damage} (BOMB)`, "#FF0000");
                          }
                       }
                    });
@@ -2035,12 +2017,20 @@ export default function App() {
                 state.screenShake = 10;
               }
               
-              p.count -= damage;
+              let finalDamage = damage;
+              if (state.drones.length > 0) {
+                state.drones.pop();
+                finalDamage = Math.max(0, damage - 5);
+                createFloatingText(state, p.x, p.y, "DRONE ABSORBED!", "#00FFFF");
+                createParticles(state, p.x, p.y, "#00FFFF", 20);
+              }
+              
+              p.count -= finalDamage;
               vibrate(50);
               playSound('hit');
               createParticles(state, b.x, b.y, '#FF0000', 5);
-              createFloatingText(state, p.x, p.y, `-${damage}`, "#FF0000");
-              state.screenShake = damage;
+              if (finalDamage > 0) createFloatingText(state, p.x, p.y, `-${finalDamage}`, "#FF0000");
+              state.screenShake = finalDamage;
             }
           }
         });
@@ -3136,7 +3126,6 @@ export default function App() {
                   <span className="text-white font-black text-base sm:text-xl">{isNaN(Number(coins)) ? 0 : coins}</span>
                 </div>
                 <div className="flex items-center gap-1.5 sm:gap-2">
-                  {/* Removed UserMenu */}
                   <button 
                     onClick={() => setShowAchievements(true)}
                     className="w-8 h-8 sm:w-10 sm:h-10 bg-slate-800 hover:bg-slate-700 rounded-full flex items-center justify-center border border-slate-700 transition-all shadow-lg"
