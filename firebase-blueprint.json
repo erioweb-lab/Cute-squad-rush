@@ -1,0 +1,40 @@
+{
+  "entities": {
+    "UserProgress": {
+      "title": "User Progress",
+      "description": "Stores player's coins, high score, and permanent upgrades.",
+      "type": "object",
+      "properties": {
+        "coins": {
+          "type": "integer",
+          "description": "Current number of coins the player has."
+        },
+        "highScore": {
+          "type": "integer",
+          "description": "The highest score achieved by the player."
+        },
+        "upgrades": {
+          "type": "object",
+          "properties": {
+            "attackPower": { "type": "integer" },
+            "fireRate": { "type": "integer" },
+            "bulletSize": { "type": "integer" }
+          },
+          "required": ["attackPower", "fireRate", "bulletSize"]
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last time the progress was saved."
+        }
+      },
+      "required": ["coins", "highScore", "upgrades", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProgress",
+      "description": "User progress document indexed by UID."
+    }
+  }
+}
