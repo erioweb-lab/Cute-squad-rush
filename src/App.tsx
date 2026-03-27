@@ -35,7 +35,7 @@ import {
   fireBulletImg, iceBulletImg, poisonBulletImg, electricBulletImg, laserBulletImg,
   bossFireBulletImg, bossIceBulletImg, bossPoisonBulletImg, bossElectricBulletImg, bossLaserBulletImg,
   coinImg, blackBombImg, feverImg, heartImg, magnetImg, critImg, criticalBulletImg, shieldImg,
-  droneImg, droneOldImg,
+  droneImg,
   fireAmmoImg, freezeImg, poisonAmmoImg, homingAmmoImg, iceAmmoImg,
   bg1, bg2, bg3, bg4, bg5, bg6, bg7, bg8, bg9, bg10, bg11, bg12, victoryPose
 } from './constants';
@@ -930,7 +930,8 @@ export default function App() {
           const type = enemyTypes[Math.floor(Math.random() * enemyTypes.length)] as 'NORMAL' | 'FIRE' | 'WATER' | 'ICE' | 'POISON' | 'BOMB' | 'ARCHER';
           
           // Use full width for enemy spawn
-          const x = Math.random() * (CANVAS_WIDTH - 60) + 30;
+          const enemySize = sq.size || 20;
+          const x = Math.random() * (CANVAS_WIDTH - enemySize * 2) + enemySize;
           
           // Staggered spawn: 0 to 10 seconds (600 frames)
           const spawnDelay = Math.floor(Math.random() * 600);
@@ -1501,9 +1502,6 @@ export default function App() {
             e.y += e.speed;
           }
 
-          // Clamp enemy within screen boundaries (X only to prevent disappearing sideways)
-          e.x = Math.max(e.size, Math.min(CANVAS_WIDTH - e.size, e.x));
-          
           if (e.type === 'WATER') {
             e.x += Math.sin(state.frameCount / 20) * 2;
             if (state.frameCount % 400 === 0) {
@@ -1518,7 +1516,12 @@ export default function App() {
                 const dist = Math.hypot(dx, dy) || 1;
                 state.enemyBullets.push({ id: Math.random(), x: e.x, y: e.y, vx: (dx/dist) * 3, vy: (dy/dist) * 3, type: 'ARROW' });
              }
-          } else if (e.type === 'FIRE') {
+          }
+
+          // Clamp enemy within screen boundaries (X only to prevent disappearing sideways)
+          e.x = Math.max(e.size, Math.min(CANVAS_WIDTH - e.size, e.x));
+          
+          if (e.type === 'FIRE') {
              if (state.frameCount % 360 === 0) {
                 state.enemyBullets.push({ id: Math.random(), x: e.x, y: e.y, vx: 0, vy: 2, type: 'FIRE' });
              }
@@ -2621,14 +2624,24 @@ export default function App() {
           ctx.lineWidth = 1;
           ctx.stroke();
         } else if (b.type === 'WATER' || b.type === 'WATERFALL') {
+          const isWaterfall = b.type === 'WATERFALL';
+          const pulse = isWaterfall ? 1 + Math.sin(state.frameCount * 0.2) * 0.2 : 1;
+          
+          if (isWaterfall) {
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#1E90FF';
+          }
+
           ctx.fillStyle = '#1E90FF';
           ctx.beginPath();
-          ctx.arc(0, 4, 8, 0, Math.PI);
-          ctx.lineTo(0, -12);
+          ctx.arc(0, 4 * pulse, 8 * pulse, 0, Math.PI);
+          ctx.lineTo(0, -12 * pulse);
           ctx.closePath();
           ctx.fill();
           ctx.fillStyle = '#87CEFA';
-          ctx.beginPath(); ctx.arc(-3, 2, 3, 0, Math.PI*2); ctx.fill();
+          ctx.beginPath(); ctx.arc(-3 * pulse, 2 * pulse, 3 * pulse, 0, Math.PI*2); ctx.fill();
+          
+          ctx.shadowBlur = 0; // Reset shadow
         } else if (b.type === 'POISON') {
           const angle = Math.atan2(b.vy, b.vx);
           ctx.rotate(angle - Math.PI / 2);
