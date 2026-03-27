@@ -44,7 +44,6 @@ import critImg from './assets/items/crit.png';
 import criticalBulletImg from './assets/critical-bullet.png';
 import shieldImg from './assets/items/shield.png';
 import droneImg from './assets/items/drone.png';
-import droneOldImg from './assets/items/drone_old.png';
 import fireAmmoImg from './assets/items/fire_ammo.png';
 import freezeImg from './assets/items/freeze.png';
 import poisonAmmoImg from './assets/items/poison_ammo.png';
@@ -74,7 +73,7 @@ export {
   iceImg, fireImg, slimeImg, poisonImg, bombImg,
   fireBulletImg, iceBulletImg, poisonBulletImg, electricBulletImg, laserBulletImg,
   bossFireBulletImg, bossIceBulletImg, bossPoisonBulletImg, bossElectricBulletImg, bossLaserBulletImg,
-  coinImg, blackBombImg, feverImg, heartImg, magnetImg, critImg, criticalBulletImg, shieldImg, droneImg, droneOldImg,
+  coinImg, blackBombImg, feverImg, heartImg, magnetImg, critImg, criticalBulletImg, shieldImg, droneImg,
   fireAmmoImg, freezeImg, poisonAmmoImg, homingAmmoImg, iceAmmoImg,
   bg1, bg2, bg3, bg4, bg5, bg6, bg7, bg8, bg9, bg10, bg11, bg12, victoryPose
 };
