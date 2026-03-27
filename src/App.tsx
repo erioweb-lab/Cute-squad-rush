@@ -33,7 +33,8 @@ import {
   iceImg, fireImg, slimeImg, poisonImg, bombImg,
   fireBulletImg, iceBulletImg, poisonBulletImg, electricBulletImg, laserBulletImg,
   bossFireBulletImg, bossIceBulletImg, bossPoisonBulletImg, bossElectricBulletImg, bossLaserBulletImg,
-  coinImg, blackBombImg, feverImg, heartImg, magnetImg, critImg, criticalBulletImg, shieldImg, droneImg, droneOldImg,
+  coinImg, blackBombImg, feverImg, heartImg, magnetImg, critImg, criticalBulletImg, shieldImg,
+  droneImg, droneOldImg,
   fireAmmoImg, freezeImg, poisonAmmoImg, homingAmmoImg, iceAmmoImg,
   bg1, bg2, bg3, bg4, bg5, bg6, bg7, bg8, bg9, bg10, bg11, bg12, victoryPose
 } from './constants';
