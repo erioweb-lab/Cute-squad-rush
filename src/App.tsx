@@ -476,7 +476,7 @@ export default function App() {
     try {
       const [
         animalImg, bossImg, coinImgObj, blackBombImgObj, feverImgObj, heartImgObj, magnetImgObj, iceImgObj, fireImgObj, slimeImgObj, poisonImgObj, bombImgObj,
-        droneImgObj, droneOldImgObj, shieldImgObj, freezeImgObj, critImgObj, fireAmmoImgObj, poisonAmmoImgObj, iceAmmoImgObj, homingAmmoImgObj, victoryPoseImg,
+        droneImgObj, shieldImgObj, freezeImgObj, critImgObj, fireAmmoImgObj, poisonAmmoImgObj, iceAmmoImgObj, homingAmmoImgObj, victoryPoseImg,
         fireBulletImgObj, iceBulletImgObj, poisonBulletImgObj, electricBulletImgObj, laserBulletImgObj, normalBulletImgObj, homingBulletImgObj, criticalBulletImgObj,
         bossFireBulletImgObj, bossIceBulletImgObj, bossPoisonBulletImgObj, bossElectricBulletImgObj, bossLaserBulletImgObj,
         ...backgrounds
@@ -494,7 +494,6 @@ export default function App() {
         loadLocalImage(poisonImg),
         loadLocalImage(bombImg),
         loadLocalImage(droneImg),
-        loadLocalImage(droneOldImg),
         loadLocalImage(shieldImg),
         loadLocalImage(freezeImg),
         loadLocalImage(critImg),
@@ -592,7 +591,7 @@ export default function App() {
           fever: processImage(feverImgObj),
           heart: processImage(heartImgObj),
           magnet: processImage(magnetImgObj),
-          drone: processImage(droneOldImgObj),
+          drone: processImage(droneImgObj),
           drone_equipped: processImage(droneImgObj),
           shield: processImage(shieldImgObj),
           freeze: processImage(freezeImgObj),
@@ -930,7 +929,7 @@ export default function App() {
           const type = enemyTypes[Math.floor(Math.random() * enemyTypes.length)] as 'NORMAL' | 'FIRE' | 'WATER' | 'ICE' | 'POISON' | 'BOMB' | 'ARCHER';
           
           // Use full width for enemy spawn
-          const enemySize = sq.size || 20;
+          const enemySize = SLIME_SIZE;
           const x = Math.random() * (CANVAS_WIDTH - enemySize * 2) + enemySize;
           
           // Staggered spawn: 0 to 10 seconds (600 frames)
