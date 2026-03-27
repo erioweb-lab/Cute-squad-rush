@@ -3160,7 +3160,7 @@ export default function App() {
           )}
           
           {reactStateStatus === 'START' && (
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-between text-white p-3 sm:p-6 text-center overflow-hidden">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center text-white p-4 sm:p-8 text-center overflow-y-auto">
               {/* Top Bar */}
               <div className="w-full flex justify-between items-center mt-1">
                 <div className="bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-yellow-500/30 flex items-center gap-2 shadow-lg">
@@ -3184,7 +3184,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="flex flex-col items-center justify-center flex-1 w-full max-w-md py-1">
+              <div className="flex flex-col items-center justify-center flex-1 w-full max-w-md mx-auto py-1">
                 <h1 className="text-2xl sm:text-4xl font-black mb-0 text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-pink-500 leading-tight drop-shadow-2xl">
                   CUTE SQUAD RUSH
                 </h1>
