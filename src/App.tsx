@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Play, RotateCcw, Loader2, X, Gamepad2, Skull, Target, Info, Home, ShoppingCart, Trophy, Bomb as BombIcon } from 'lucide-react';
-import { auth, db, handleFirestoreError, OperationType, signInWithGoogle, logout } from './firebase';
+import { auth, db, handleFirestoreError, OperationType } from './firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -34,9 +34,9 @@ import {
   rabbit1, rabbit2, rabbit3, rabbit4, rabbit5,
   rat1, rat2, rat3, rat4, rat5,
   iceImg, fireImg, slimeImg, poisonImg, bombImg,
-  fireBulletImg, iceBulletImg, poisonBulletImg, electricBulletImg, laserBulletImg, normalBulletImg, homingBulletImg,
+  fireBulletImg, iceBulletImg, poisonBulletImg, electricBulletImg, laserBulletImg,
   bossFireBulletImg, bossIceBulletImg, bossPoisonBulletImg, bossElectricBulletImg, bossLaserBulletImg,
-  coinImg, blackBombImg, feverImg, heartImg, magnetImg, critImg, criticalBulletImg, shieldImg, droneImg,
+  coinImg, blackBombImg, feverImg, heartImg, magnetImg, critImg, criticalBulletImg, shieldImg, droneImg, droneOldImg,
   fireAmmoImg, freezeImg, poisonAmmoImg, homingAmmoImg, iceAmmoImg,
   bg1, bg2, bg3, bg4, bg5, bg6, bg7, bg8, bg9, bg10, bg11, bg12, victoryPose
 } from './constants';
@@ -521,7 +521,7 @@ export default function App() {
     try {
       const [
         animalImg, bossImg, coinImgObj, blackBombImgObj, feverImgObj, heartImgObj, magnetImgObj, iceImgObj, fireImgObj, slimeImgObj, poisonImgObj, bombImgObj,
-        droneImgObj, shieldImgObj, freezeImgObj, critImgObj, fireAmmoImgObj, poisonAmmoImgObj, iceAmmoImgObj, homingAmmoImgObj, victoryPoseImg,
+        droneImgObj, droneOldImgObj, shieldImgObj, freezeImgObj, critImgObj, fireAmmoImgObj, poisonAmmoImgObj, iceAmmoImgObj, homingAmmoImgObj, victoryPoseImg,
         fireBulletImgObj, iceBulletImgObj, poisonBulletImgObj, electricBulletImgObj, laserBulletImgObj, normalBulletImgObj, homingBulletImgObj, criticalBulletImgObj,
         bossFireBulletImgObj, bossIceBulletImgObj, bossPoisonBulletImgObj, bossElectricBulletImgObj, bossLaserBulletImgObj,
         ...backgrounds
@@ -539,6 +539,7 @@ export default function App() {
         loadLocalImage(poisonImg),
         loadLocalImage(bombImg),
         loadLocalImage(droneImg),
+        loadLocalImage(droneOldImg),
         loadLocalImage(shieldImg),
         loadLocalImage(freezeImg),
         loadLocalImage(critImg),
@@ -547,13 +548,13 @@ export default function App() {
         loadLocalImage(iceAmmoImg),
         loadLocalImage(homingAmmoImg),
         loadLocalImage(victoryPose).catch(() => null),
-        loadLocalImage(fireBulletImg),
-        loadLocalImage(iceBulletImg),
-        loadLocalImage(poisonBulletImg),
-        loadLocalImage(electricBulletImg),
-        loadLocalImage(laserBulletImg),
-        loadLocalImage(normalBulletImg),
-        loadLocalImage(homingBulletImg),
+        loadLocalImage('/bullet/fire.png'),
+        loadLocalImage('/bullet/ice.png'),
+        loadLocalImage('/bullet/poison.png'),
+        loadLocalImage('/bullet/electric.png'),
+        loadLocalImage('/bullet/laser.png'),
+        loadLocalImage('/bullet/normal.png'),
+        loadLocalImage('/bullet/homing.png'),
         loadLocalImage(criticalBulletImg),
         loadLocalImage(bossFireBulletImg),
         loadLocalImage(bossIceBulletImg),
@@ -636,7 +637,7 @@ export default function App() {
           fever: processImage(feverImgObj),
           heart: processImage(heartImgObj),
           magnet: processImage(magnetImgObj),
-          drone: processImage(droneImgObj),
+          drone: processImage(droneOldImgObj),
           drone_equipped: processImage(droneImgObj),
           shield: processImage(shieldImgObj),
           freeze: processImage(freezeImgObj),
@@ -3135,28 +3136,7 @@ export default function App() {
                   <span className="text-white font-black text-base sm:text-xl">{isNaN(Number(coins)) ? 0 : coins}</span>
                 </div>
                 <div className="flex items-center gap-1.5 sm:gap-2">
-                  {user ? (
-                    <div className="flex items-center gap-2">
-                      <img 
-                        src={user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} 
-                        alt="User" 
-                        className="w-8 h-8 rounded-full border border-yellow-500/50"
-                      />
-                      <button 
-                        onClick={() => logout()}
-                        className="text-[10px] bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded-lg border border-slate-700 text-slate-300"
-                      >
-                        LOGOUT
-                      </button>
-                    </div>
-                  ) : (
-                    <button 
-                      onClick={() => signInWithGoogle()}
-                      className="text-[10px] bg-yellow-500 hover:bg-yellow-400 text-black font-bold px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-1"
-                    >
-                      LOGIN
-                    </button>
-                  )}
+                  {/* Removed UserMenu */}
                   <button 
                     onClick={() => setShowAchievements(true)}
                     className="w-8 h-8 sm:w-10 sm:h-10 bg-slate-800 hover:bg-slate-700 rounded-full flex items-center justify-center border border-slate-700 transition-all shadow-lg"
