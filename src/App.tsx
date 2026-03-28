@@ -2641,16 +2641,25 @@ export default function App() {
         ctx.save();
         ctx.translate(b.x, b.y);
         
-        // Red pulsating aura for ALL enemy bullets
+        // Pulsating aura for enemy bullets
         const pulse = Math.sin(state.frameCount * 0.15) * 0.2 + 0.8; // 0.6 to 1.0
         const auraRadius = 22 * pulse;
         
+        let auraColor = 'rgba(255, 0, 0, 0.6)';
+        let shadowColor = '#ff0000';
+        
+        // Inferno King (FIRE) uses sky blue aura
+        if (b.type === 'FIRE') {
+          auraColor = 'rgba(135, 206, 235, 0.6)';
+          shadowColor = '#87CEEB';
+        }
+        
         ctx.beginPath();
         ctx.arc(0, 0, auraRadius, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255, 0, 0, 0.6)';
+        ctx.fillStyle = auraColor;
         ctx.globalAlpha = 0.6;
         ctx.shadowBlur = 20;
-        ctx.shadowColor = '#ff0000';
+        ctx.shadowColor = shadowColor;
         ctx.fill();
         
         ctx.globalAlpha = 1.0;
@@ -2659,7 +2668,7 @@ export default function App() {
         const bulletImg = assetsRef.current?.bossBullets[b.type?.toLowerCase() || ''];
         if (bulletImg) {
           ctx.shadowBlur = 10; // Keep some glow on the image itself
-          ctx.shadowColor = '#ff0000';
+          ctx.shadowColor = b.type === 'FIRE' ? '#87CEEB' : '#ff0000';
           // Draw the bullet image slightly larger for better visibility
           ctx.drawImage(bulletImg, -20, -20, 40, 40);
           ctx.shadowBlur = 0;
