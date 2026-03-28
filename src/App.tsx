@@ -531,8 +531,8 @@ export default function App() {
         loadLocalImage('/bullet/fire.png'),
         loadLocalImage('/bullet/ice.png'),
         loadLocalImage('/bullet/poison.png'),
-        loadLocalImage(electricAmmoImg), // Use new electric image for bullet too
-        loadLocalImage(laserAmmoImg),    // Use new laser image for bullet too
+        loadLocalImage('/bullet/electric.png'),
+        loadLocalImage('/bullet/laser.png'),
         loadLocalImage('/bullet/normal.png'),
         loadLocalImage('/bullet/homing.png'),
         loadLocalImage(criticalBulletImg),
@@ -617,8 +617,8 @@ export default function App() {
           fever: processImage(feverImgObj),
           heart: processImage(heartImgObj),
           magnet: processImage(magnetImgObj),
-          drone: processImage(droneImgObj),
-          drone_equipped: processImage(droneItemImgObj),
+          drone: processImage(droneItemImgObj),
+          drone_equipped: processImage(droneImgObj),
           shield: processImage(shieldImgObj),
           freeze: processImage(freezeImgObj),
           crit: processImage(critImgObj),
