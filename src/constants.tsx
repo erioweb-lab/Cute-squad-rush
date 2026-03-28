@@ -45,7 +45,9 @@ import criticalBulletImg from './assets/critical-bullet.png';
 import shieldImg from './assets/items/shield.png';
 import droneImg from './assets/items/drone.png';
 import droneItemImg from './assets/items/drone_item.png';
-export { droneImg, droneItemImg };
+import laserAmmoImg from './assets/items/laser_ammo.png';
+import electricAmmoImg from './assets/items/electric_ammo.png';
+export { droneImg, droneItemImg, laserAmmoImg, electricAmmoImg };
 import fireAmmoImg from './assets/items/fire_ammo.png';
 import freezeImg from './assets/items/freeze.png';
 import poisonAmmoImg from './assets/items/poison_ammo.png';
@@ -130,8 +132,8 @@ export const CHAR_UPGRADE_HP_4 = 180; // 4단계 -> 5단계 업그레이드 체�
 export const BOSS_HP_MULTIPLIER = 3.0; // 보스 체력 배율
 export const BOSS_BULLET_COUNT_MULTIPLIER = 0.3; // 보스 탄환 개수 배율 (1.0 = 기본, 0.5 = 50% 감소)
 export const BULLET_POWER_MULTIPLIER = 0.3; // 캐릭터 탄환 공격력 배율
-export const FEVER_SPEED_MULTIPLIER = 1.1; // 피버 모드 탄환 속도 배율
-export const FEVER_COMBO_THRESHOLD = 30; // 피버 모드 발동 콤보 수
+export const FEVER_SPEED_MULTIPLIER = 1.2; // 피버 모드 탄환 속도 배율
+export const FEVER_COMBO_THRESHOLD = 15; // 피버 모드 발동 콤보 수
 export const LEVEL_UP_ATTACK_SPEED_INCREASE = 0.05; // 공격 속도 레벨업 증가량 (5%)
 export const LEVEL_UP_BULLET_SIZE_INCREASE = 0.05; // 탄환 크기 레벨업 증가량 (5%)
 export const FEVER_DAMAGE_MULTIPLIER = 1.1; // 피버 모드 데미지 배율 (10% 증가)
@@ -153,6 +155,8 @@ export const CHAR_POISON_TICK_RATE = 120; // 독 데미지 발생 주기 (프레
 export const CHAR_POISON_TICK_DAMAGE = 30; // 독 틱당 데미지
 
 export const CHAR_ICE_DURATION = 120; // 빙결 상태이상 지속 시간 (프레임)
+export const CHAR_ELECTRIC_STUN_DURATION = 30; // 전기 기절 상태이상 지속 시간 (프레임, 0.5초)
+export const CHAR_LASER_PIERCE_PROBABILITY = 0.3; // 레이저 관통 확률 (30%)
 
 // --- Skill Selection UI Constants (스킬 선택 UI 관련 상수) ---
 export const SKILL_MODAL_BG = "bg-black/80"; // 스킬 선택 모달 배경색
@@ -168,7 +172,7 @@ export const ENEMY_FIRE_TICK_RATE = 60; // 적 화염 데미지 발생 주기 (�
 export const ENEMY_FIRE_TICK_DAMAGE = 5; // 적 화염 틱당 플레이어 카운트 감소량
 
 export const ENEMY_POISON_DURATION = 900; // 적 독 상태이상 지속 시간 (프레임)
-export const ENEMY_POISON_TICK_RATE = 60; // 적 독 데미지 발생 주기 (프레임)
+export const ENEMY_POISON_TICK_RATE = 120; // 적 독 데미지 발생 주기 (프레임)
 export const ENEMY_POISON_TICK_DAMAGE = 3; // 적 독 틱당 플레이어 카운트 감소량
 
 export const ENEMY_ICE_DURATION = 120; // 적 빙결 상태이상 지속 시간 (프레임)
@@ -186,17 +190,17 @@ export const ITEM_CIRCLE_SCALE = 1.0;   // 아이템 원형 히트박스 크기 
 export const ITEM_IMAGE_SCALE = 1.0;    // 아이템 이미지 표시 크기 배율
 
 // --- BOSS Constants (보스 관련 상수) ---
-export const BOSS_CIRCLE_SCALE = 1.0;   // 보스 원형 히트박스 크기 배율
+export const BOSS_CIRCLE_SCALE = 1.2;   // 보스 원형 히트박스 크기 배율
 export const BOSS_IMAGE_SCALE = 1.2;    // 보스 이미지 표시 크기 배율
-export const BOSS_REWARD_PROBABILITY = 0.2; // 보스 보상 아이템 드랍 확률
-export const BOSS_MAX_REWARDS = 3;      // 보스 최대 보상 아이템 수
+export const BOSS_REWARD_PROBABILITY = 0.3; // 보스 보상 아이템 드랍 확률
+export const BOSS_MAX_REWARDS = 2;      // 보스 최대 보상 아이템 수
 
 export const BOSS_FIRING_CONFIG = {
   INFERNO_KING:   { bulletCount: 1.5, bulletSpeed: 1.5 },
   ICE_MONARCH:    { bulletCount: 3.0, bulletSpeed: 2.0 },
   VORTEX_BRINGER: { bulletCount: 0.7, bulletSpeed: 1.2 },
   THUNDER_DRAGON: { bulletCount: 1.1, bulletSpeed: 1.2 },
-  TOXIC_CLOUD:    { bulletCount: 1.0, bulletSpeed: 1.0 },
+  TOXIC_CLOUD:    { bulletCount: 0.7, bulletSpeed: 1.0 },
   ACID_STALKER:   { bulletCount: 1.0, bulletSpeed: 1.0 },
   VOLT_SPIKER:    { bulletCount: 1.2, bulletSpeed: 1.1 },
   ROCK_CRACKER:   { bulletCount: 0.8, bulletSpeed: 0.8 },
@@ -525,15 +529,21 @@ export type Stats = {
   totalScore: number;
   maxStage: number;
   claimedAchievements: string[];
+  dailyKills?: number;
+  dailyCoins?: number;
+  dailyScore?: number;
+  dailyMaxStage?: number;
+  dailyClaimedAchievements?: string[];
+  lastDate?: string;
 };
 
 export const ACHIEVEMENTS: Achievement[] = [
-  { id: 'kills_100', title: '슬라임 사냥꾼', description: '적 100마리 처치', icon: '⚔️', requirementType: 'kills', requirementValue: 100, reward: 50 },
-  { id: 'kills_500', title: '학살자', description: '적 500마리 처치', icon: '💀', requirementType: 'kills', requirementValue: 500, reward: 200 },
-  { id: 'stage_5', title: '모험의 시작', description: '스테이지 5 도달', icon: '🗺️', requirementType: 'stage', requirementValue: 5, reward: 100 },
-  { id: 'stage_10', title: '베테랑 모험가', description: '스테이지 10 도달', icon: '🏆', requirementType: 'stage', requirementValue: 10, reward: 300 },
-  { id: 'coins_1000', title: '부자', description: '누적 코인 1000개 획득', icon: '💰', requirementType: 'coins', requirementValue: 1000, reward: 150 },
-  { id: 'score_10000', title: '고득점자', description: '누적 점수 10,000점 달성', icon: '✨', requirementType: 'score', requirementValue: 10000, reward: 200 },
+  { id: 'kills_100', title: '슬라임 사냥꾼', description: '오늘 적 100마리 처치', icon: '⚔️', requirementType: 'kills', requirementValue: 100, reward: 50 },
+  { id: 'kills_500', title: '학살자', description: '오늘 적 500마리 처치', icon: '💀', requirementType: 'kills', requirementValue: 500, reward: 200 },
+  { id: 'stage_5', title: '모험의 시작', description: '오늘 스테이지 5 도달', icon: '🗺️', requirementType: 'stage', requirementValue: 5, reward: 100 },
+  { id: 'stage_10', title: '베테랑 모험가', description: '오늘 스테이지 10 도달', icon: '🏆', requirementType: 'stage', requirementValue: 10, reward: 300 },
+  { id: 'coins_1000', title: '부자', description: '오늘 누적 코인 1000개 획득', icon: '💰', requirementType: 'coins', requirementValue: 1000, reward: 150 },
+  { id: 'score_10000', title: '고득점자', description: '오늘 누적 점수 10,000점 달성', icon: '✨', requirementType: 'score', requirementValue: 10000, reward: 200 },
 ];
 
 export type GameState = {
@@ -573,20 +583,20 @@ export type GameState = {
     poisonTimer: number;
     playerFreezeTimer: number;
     critTimer: number;
-    ammoType: 'NORMAL' | 'FIRE' | 'POISON' | 'ICE' | 'HOMING';
+    ammoType: 'NORMAL' | 'FIRE' | 'POISON' | 'ICE' | 'HOMING' | 'LASER' | 'ELECTRIC';
     ammoTimer: number;
     character: string;
     isDead: boolean;
   }>;
   playerCount: number;
   selectedCharacters: string[];
-  bullets: Array<{ x: number; y: number; vx?: number; vy?: number; damage: number; id: number; type: 'NORMAL' | 'FIRE' | 'POISON' | 'ICE' | 'HOMING'; isCrit: boolean; rabbitPierce?: boolean; pierceCount: number; hitEnemies: number[]; hitGates?: number[]; size: number }>;
+  bullets: Array<{ x: number; y: number; vx?: number; vy?: number; damage: number; id: number; type: 'NORMAL' | 'FIRE' | 'POISON' | 'ICE' | 'HOMING' | 'LASER' | 'ELECTRIC'; isCrit: boolean; rabbitPierce?: boolean; pierceCount: number; hitEnemies: number[]; hitGates?: number[]; size: number }>;
   enemyBullets: Array<{ x: number; y: number; vx: number; vy: number; id: number; isBoss?: boolean; type?: 'FIRE' | 'ICE' | 'POISON' | 'ELECTRIC' | 'NORMAL' | 'ARROW' | 'BOMB' | 'WATER' | 'WATERFALL' | 'ROCK' | 'LASER' | 'STORM' | 'THUNDER' }>;
   enemies: Array<{ x: number; y: number; hp: number; maxHp: number; size: number; id: number; speed: number; type: 'NORMAL' | 'FIRE' | 'WATER' | 'ICE' | 'POISON' | 'BOMB' | 'ARCHER' | 'BOSS' | 'SLIME'; bossType?: string; effectType?: 'FIRE' | 'ICE' | 'POISON' | 'ELECTRIC' | 'WATERFALL' | 'WIND' | 'THUNDER' | 'EARTHQUAKE' | 'LASER' | 'STORM' | 'ALL'; currentEffect?: 'FIRE' | 'ICE' | 'POISON' | 'ELECTRIC' | 'WATERFALL' | 'WIND' | 'THUNDER' | 'EARTHQUAKE' | 'LASER' | 'STORM'; effectTimer?: number; hitFlash?: number; fireTimer?: number; poisonTimer?: number; freezeTimer?: number; spawnFrame?: number; phase2Announced?: boolean; phase3Announced?: boolean }>;
   gates: Array<{ x: number; y: number; width: number; height: number; type: 'ADD' | 'MULT' | 'SUB' | 'DIV' | 'FREEZE' | 'FIRE' | 'SHIELD' | 'DRONE'; value: number; id: number; hits: number; hitFlash?: number }>;
   particles: Array<{ x: number; y: number; vx: number; vy: number; life: number; color: string; id: number }>;
   floatingTexts: Array<{ x: number; y: number; text: string; life: number; color: string; id: number; isWarning?: boolean }>;
-  items: Array<{ x: number; y: number; id: number; speed: number; type: 'FEVER' | 'BOMB' | 'DRONE' | 'SHIELD' | 'MAGNET' | 'FREEZE' | 'CRIT' | 'FIRE' | 'POISON_AMMO' | 'ICE_AMMO' | 'HOMING_AMMO' | 'COIN' | 'HEART' }>;
+  items: Array<{ x: number; y: number; id: number; speed: number; type: 'FEVER' | 'BOMB' | 'DRONE' | 'SHIELD' | 'MAGNET' | 'FREEZE' | 'CRIT' | 'FIRE' | 'POISON_AMMO' | 'ICE_AMMO' | 'HOMING_AMMO' | 'LASER_AMMO' | 'ELECTRIC_AMMO' | 'COIN' | 'HEART' }>;
   drones: Array<{ angle: number; id: number }>;
   spawnQueue: Array<{ x: number; y: number; hp: number; maxHp: number; size: number; id: number; speed: number; type: 'NORMAL' | 'FIRE' | 'WATER' | 'ICE' | 'POISON' | 'BOMB' | 'ARCHER' | 'SLIME'; spawnFrame: number }>;
   feverTime: number;

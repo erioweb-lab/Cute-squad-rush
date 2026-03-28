@@ -23,7 +23,7 @@ import {
   bossGalleryPngSrc, getPlayerStage, ANIMALS, BOSSES, ITEMS, STAGES,
   SKILL_SELECTION_COUNT_DEFAULT, SKILL_RARITY_WEIGHTS, getStageSkillCount, SKILL_RARITY_COLORS,
   AVAILABLE_SKILLS, GATE_HEALTH_BASE, GATE_HEALTH_STAGE_MULTIPLIER, DIV_GATE_WIDTH_RATIO, DIV_GATE_REDUCTION_RATIO, GATE_SPAWN_INTERVAL, GIANT_BULLET_BASE_SIZE, GIANT_BULLET_UPGRADE_SCALING, HOMING_BULLET_BASE_SIZE, getHitsNeeded, UPGRADE_CONFIG,
-  Stats, ACHIEVEMENTS,
+  Stats, ACHIEVEMENTS, CHAR_LASER_PIERCE_PROBABILITY, CHAR_ELECTRIC_STUN_DURATION,
   getFormationOffsets, drawImageCircle, drawCat, drawMonster, ErrorBoundary,
   initAudio, playBGM, playSound, INITIAL_GAME_STATE, createParticles, createFloatingText,
   vibrate, loadLocalImage, removeBackground,
@@ -35,7 +35,7 @@ import {
   fireBulletImg, iceBulletImg, poisonBulletImg, electricBulletImg, laserBulletImg,
   bossFireBulletImg, bossIceBulletImg, bossPoisonBulletImg, bossElectricBulletImg, bossLaserBulletImg,
   coinImg, blackBombImg, feverImg, heartImg, magnetImg, critImg, criticalBulletImg, shieldImg,
-  droneImg, droneItemImg,
+  droneImg, droneItemImg, laserAmmoImg, electricAmmoImg,
   fireAmmoImg, freezeImg, poisonAmmoImg, homingAmmoImg, iceAmmoImg,
   bg1, bg2, bg3, bg4, bg5, bg6, bg7, bg8, bg9, bg10, bg11, bg12, victoryPose
 } from './constants';
@@ -265,12 +265,21 @@ export default function App() {
     if (state) state.statsUpdated = true;
     
     setStats(prev => {
+      const today = new Date().toDateString();
+      const isNewDay = prev.lastDate !== today;
+
       const newStats = {
         ...prev,
         totalKills: (prev.totalKills || 0) + (sessionKills || 0),
         totalCoins: (prev.totalCoins || 0) + (sessionCoins || 0),
         totalScore: (prev.totalScore || 0) + (sessionScore || 0),
-        maxStage: Math.max(prev.maxStage || 0, sessionStage || 0)
+        maxStage: Math.max(prev.maxStage || 0, sessionStage || 0),
+        dailyKills: (isNewDay ? 0 : (prev.dailyKills || 0)) + (sessionKills || 0),
+        dailyCoins: (isNewDay ? 0 : (prev.dailyCoins || 0)) + (sessionCoins || 0),
+        dailyScore: (isNewDay ? 0 : (prev.dailyScore || 0)) + (sessionScore || 0),
+        dailyMaxStage: Math.max(isNewDay ? 0 : (prev.dailyMaxStage || 0), sessionStage || 0),
+        dailyClaimedAchievements: isNewDay ? [] : (prev.dailyClaimedAchievements || []),
+        lastDate: today
       };
       const newCoins = (coinsRef.current || 0) + (sessionCoins || 0);
       setCoins(newCoins);
@@ -283,22 +292,27 @@ export default function App() {
     const achievement = ACHIEVEMENTS.find(a => a.id === achievementId);
     if (!achievement) return;
 
-    if (statsRef.current.claimedAchievements.includes(achievementId)) return;
+    const today = new Date().toDateString();
+    const isNewDay = statsRef.current.lastDate !== today;
+    const currentDailyClaimed = isNewDay ? [] : (statsRef.current.dailyClaimedAchievements || []);
+
+    if (currentDailyClaimed.includes(achievementId)) return;
 
     // Check if requirement is met
     let met = false;
     switch (achievement.requirementType) {
-      case 'kills': met = statsRef.current.totalKills >= achievement.requirementValue; break;
-      case 'stage': met = statsRef.current.maxStage >= achievement.requirementValue; break;
-      case 'coins': met = statsRef.current.totalCoins >= achievement.requirementValue; break;
-      case 'score': met = statsRef.current.totalScore >= achievement.requirementValue; break;
+      case 'kills': met = (isNewDay ? 0 : (statsRef.current.dailyKills || 0)) >= achievement.requirementValue; break;
+      case 'stage': met = (isNewDay ? 0 : (statsRef.current.dailyMaxStage || 0)) >= achievement.requirementValue; break;
+      case 'coins': met = (isNewDay ? 0 : (statsRef.current.dailyCoins || 0)) >= achievement.requirementValue; break;
+      case 'score': met = (isNewDay ? 0 : (statsRef.current.dailyScore || 0)) >= achievement.requirementValue; break;
     }
 
     if (met) {
       const newCoins = coinsRef.current + achievement.reward;
       const newStats = {
         ...statsRef.current,
-        claimedAchievements: [...statsRef.current.claimedAchievements, achievementId]
+        dailyClaimedAchievements: [...currentDailyClaimed, achievementId],
+        lastDate: today
       };
       setCoins(newCoins);
       setStats(newStats);
@@ -308,12 +322,21 @@ export default function App() {
     }
   };
 
-  const AchievementModal = () => (
+  const AchievementModal = () => {
+    const today = new Date().toDateString();
+    const isNewDay = stats.lastDate !== today;
+    const dailyKills = isNewDay ? 0 : (stats.dailyKills || 0);
+    const dailyMaxStage = isNewDay ? 0 : (stats.dailyMaxStage || 0);
+    const dailyCoins = isNewDay ? 0 : (stats.dailyCoins || 0);
+    const dailyScore = isNewDay ? 0 : (stats.dailyScore || 0);
+    const dailyClaimed = isNewDay ? [] : (stats.dailyClaimedAchievements || []);
+
+    return (
     <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center p-4 z-50 text-white">
       <div className="w-full max-w-md bg-slate-900 rounded-2xl border border-yellow-500/30 p-6 flex flex-col max-h-[80vh]">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 flex items-center gap-2">
-            <Target size={24} /> ACHIEVEMENTS
+            <Target size={24} /> 일일 퀘스트
           </h2>
           <button onClick={() => setShowAchievements(false)} className="p-2 hover:bg-white/10 rounded-full">
             <X size={24} />
@@ -322,25 +345,25 @@ export default function App() {
 
         <div className="grid grid-cols-2 gap-4 mb-6 bg-slate-800/50 p-4 rounded-xl border border-white/5">
           <div className="text-center">
-            <div className="text-xs text-slate-400 uppercase font-bold">Total Kills</div>
-            <div className="text-xl font-black text-red-400">{stats.totalKills.toLocaleString()}</div>
+            <div className="text-xs text-slate-400 uppercase font-bold">오늘 처치 수</div>
+            <div className="text-xl font-black text-red-400">{dailyKills.toLocaleString()}</div>
           </div>
           <div className="text-center">
-            <div className="text-xs text-slate-400 uppercase font-bold">Max Stage</div>
-            <div className="text-xl font-black text-blue-400">{stats.maxStage}</div>
+            <div className="text-xs text-slate-400 uppercase font-bold">오늘 최고 스테이지</div>
+            <div className="text-xl font-black text-blue-400">{dailyMaxStage}</div>
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-hide">
           {ACHIEVEMENTS.map(achievement => {
-            const isClaimed = stats.claimedAchievements.includes(achievement.id);
+            const isClaimed = dailyClaimed.includes(achievement.id);
             let progress = 0;
             let current = 0;
             switch (achievement.requirementType) {
-              case 'kills': current = stats.totalKills; break;
-              case 'stage': current = stats.maxStage; break;
-              case 'coins': current = stats.totalCoins; break;
-              case 'score': current = stats.totalScore; break;
+              case 'kills': current = dailyKills; break;
+              case 'stage': current = dailyMaxStage; break;
+              case 'coins': current = dailyCoins; break;
+              case 'score': current = dailyScore; break;
             }
             progress = Math.min(1, current / achievement.requirementValue);
             const isCompleted = progress >= 1;
@@ -363,16 +386,16 @@ export default function App() {
                   </div>
                   
                   {isClaimed ? (
-                    <div className="text-green-500 text-xs font-bold uppercase">Claimed</div>
+                    <div className="text-green-500 text-xs font-bold uppercase">완료됨</div>
                   ) : isCompleted ? (
                     <button 
                       onClick={() => claimAchievement(achievement.id)}
                       className="bg-yellow-500 hover:bg-yellow-400 text-black text-[10px] font-black px-3 py-1.5 rounded-lg uppercase shadow-lg shadow-yellow-500/20"
                     >
-                      Claim
+                      받기
                     </button>
                   ) : (
-                    <div className="text-slate-600 text-xs font-bold uppercase">Locked</div>
+                    <div className="text-slate-600 text-xs font-bold uppercase">잠김</div>
                   )}
                 </div>
               </div>
@@ -381,7 +404,7 @@ export default function App() {
         </div>
       </div>
     </div>
-  );
+  )};
 
   // Sync state to LocalStorage
   const saveProgress = (newCoins: number, newUpgrades: any, newHighScore: number, newStats?: Stats) => {
@@ -476,7 +499,7 @@ export default function App() {
     try {
       const [
         animalImg, bossImg, coinImgObj, blackBombImgObj, feverImgObj, heartImgObj, magnetImgObj, iceImgObj, fireImgObj, slimeImgObj, poisonImgObj, bombImgObj,
-        droneImgObj, droneItemImgObj, shieldImgObj, freezeImgObj, critImgObj, fireAmmoImgObj, poisonAmmoImgObj, iceAmmoImgObj, homingAmmoImgObj, victoryPoseImg,
+        droneImgObj, droneItemImgObj, laserAmmoImgObj, electricAmmoImgObj, shieldImgObj, freezeImgObj, critImgObj, fireAmmoImgObj, poisonAmmoImgObj, iceAmmoImgObj, homingAmmoImgObj, victoryPoseImg,
         fireBulletImgObj, iceBulletImgObj, poisonBulletImgObj, electricBulletImgObj, laserBulletImgObj, normalBulletImgObj, homingBulletImgObj, criticalBulletImgObj,
         bossFireBulletImgObj, bossIceBulletImgObj, bossPoisonBulletImgObj, bossElectricBulletImgObj, bossLaserBulletImgObj,
         ...backgrounds
@@ -495,6 +518,8 @@ export default function App() {
         loadLocalImage(bombImg),
         loadLocalImage(droneImg),
         loadLocalImage(droneItemImg),
+        loadLocalImage(laserAmmoImg),
+        loadLocalImage(electricAmmoImg),
         loadLocalImage(shieldImg),
         loadLocalImage(freezeImg),
         loadLocalImage(critImg),
@@ -506,8 +531,8 @@ export default function App() {
         loadLocalImage('/bullet/fire.png'),
         loadLocalImage('/bullet/ice.png'),
         loadLocalImage('/bullet/poison.png'),
-        loadLocalImage('/bullet/electric.png'),
-        loadLocalImage('/bullet/laser.png'),
+        loadLocalImage(electricAmmoImg), // Use new electric image for bullet too
+        loadLocalImage(laserAmmoImg),    // Use new laser image for bullet too
         loadLocalImage('/bullet/normal.png'),
         loadLocalImage('/bullet/homing.png'),
         loadLocalImage(criticalBulletImg),
@@ -592,8 +617,8 @@ export default function App() {
           fever: processImage(feverImgObj),
           heart: processImage(heartImgObj),
           magnet: processImage(magnetImgObj),
-          drone: processImage(droneItemImgObj),
-          drone_equipped: processImage(droneImgObj),
+          drone: processImage(droneImgObj),
+          drone_equipped: processImage(droneItemImgObj),
           shield: processImage(shieldImgObj),
           freeze: processImage(freezeImgObj),
           crit: processImage(critImgObj),
@@ -605,6 +630,8 @@ export default function App() {
           ice_ammo: processImage(iceAmmoImgObj),
           homing: processImage(homingAmmoImgObj),
           homing_ammo: processImage(homingAmmoImgObj),
+          laser_ammo: processImage(laserAmmoImgObj),
+          electric_ammo: processImage(electricAmmoImgObj),
         },
         bullets: {
           fire: processImage(fireBulletImgObj),
@@ -888,8 +915,8 @@ export default function App() {
       const countMultiplier = Math.max(1, Math.pow(totalCount, 2) * 0.005);
       const hpMultiplier = countMultiplier * Math.pow(1.15, stage - 1);
       
-      // Spawn rate based on stage config
-      const spawnRate = Math.max(60, currentStage.spawnRateBase - Math.floor((state.frameCount - state.stageStartFrame) / 60));
+      // Spawn rate based on stage config (decreased frequency by 10%)
+      const spawnRate = Math.max(60, currentStage.spawnRateBase - Math.floor((state.frameCount - state.stageStartFrame) / 60)) * 1.11;
 
       // 1. Spawn Boss or Enemies
       // Boss spawns every 1800 frames (30 seconds) within the stage
@@ -995,7 +1022,7 @@ export default function App() {
       const itemSpawnRate = state.bossActive ? 400 : 560;
       if (state.frameCount % itemSpawnRate === 0) {
         const rand = Math.random();
-        let type: 'FEVER' | 'BOMB' | 'DRONE' | 'SHIELD' | 'MAGNET' | 'FREEZE' | 'CRIT' | 'FIRE' | 'POISON_AMMO' | 'ICE_AMMO' | 'HOMING_AMMO' | 'COIN' | 'HEART' = 'FEVER';
+        let type: 'FEVER' | 'BOMB' | 'DRONE' | 'SHIELD' | 'MAGNET' | 'FREEZE' | 'CRIT' | 'FIRE' | 'POISON_AMMO' | 'ICE_AMMO' | 'HOMING_AMMO' | 'LASER_AMMO' | 'ELECTRIC_AMMO' | 'COIN' | 'HEART' = 'FEVER';
         
         if (rand > 0.9625) type = 'BOMB'; // 3.75%
         else if (rand > 0.925) type = 'DRONE'; // 3.75%
@@ -1005,10 +1032,12 @@ export default function App() {
         else if (rand > 0.6) type = 'MAGNET';
         else if (rand > 0.5) type = 'FREEZE';
         else if (rand > 0.4) type = 'CRIT';
-        else if (rand > 0.32) type = 'FIRE';
-        else if (rand > 0.24) type = 'POISON_AMMO';
-        else if (rand > 0.16) type = 'ICE_AMMO';
-        else if (rand > 0.08) type = 'HOMING_AMMO';
+        else if (rand > 0.35) type = 'FIRE';
+        else if (rand > 0.30) type = 'POISON_AMMO';
+        else if (rand > 0.25) type = 'ICE_AMMO';
+        else if (rand > 0.20) type = 'HOMING_AMMO';
+        else if (rand > 0.15) type = 'LASER_AMMO';
+        else if (rand > 0.10) type = 'ELECTRIC_AMMO';
         else type = 'FEVER';
         
         state.items.push({ id: Math.random(), x: Math.random() * (CANVAS_WIDTH - 60) + 30, y: -20, type, speed: Math.random() * 2 + 1 });
@@ -1153,9 +1182,11 @@ export default function App() {
           const scoreGained = Math.ceil(Math.ceil(e.maxHp) * state.combo * (1 + state.squadSkills.scoreMult * 0.5));
           state.score += scoreGained;
           const coinsGained = e.type === 'BOSS' ? 10 : 0;
-          if (coinsGained > 0) state.coins += coinsGained;
+          if (coinsGained > 0) {
+            state.coins += coinsGained;
+            createFloatingText(state, e.x, e.y - 40, `+${coinsGained} 💰`, "#FFD700");
+          }
           createFloatingText(state, e.x, e.y, `+${scoreGained} (x${state.combo})`, "#FFD700");
-          createFloatingText(state, e.x, e.y - 40, `+${coinsGained} 💰`, "#FFD700");
           createParticles(state, e.x, e.y, '#FF6B6B', e.type === 'BOSS' ? 50 : 15);
 
           if (e.type === 'BOSS') {
@@ -1207,7 +1238,7 @@ export default function App() {
             
             // 탄환 개수 증가 (Phase2: 10%, Phase3: 20%)
             const bulletCountMult = (isPhase3 ? 1.2 : (isPhase2 ? 1.1 : 1.0));
-            const bulletSpeedMult = (isPhase3 ? 1.3 : (isPhase2 ? 1.15 : 1.0));
+            const bulletSpeedMult = (isPhase3 ? 1.2 : (isPhase2 ? 1.1 : 1.0));
 
             if (isPhase2 && !e.phase2Announced) {
               e.phase2Announced = true;
@@ -1222,7 +1253,8 @@ export default function App() {
               playSound('fever');
             }
 
-            const attackRate = Math.max(isPhase2 ? 60 : 120, (400 - stage * 40) * (isPhase2 ? 0.7 : 1.0)); 
+            const attackRateMult = isPhase3 ? 0.8 : (isPhase2 ? 0.9 : 1.0);
+            const attackRate = Math.max(isPhase3 ? 40 : (isPhase2 ? 60 : 120), (400 - stage * 40) * attackRateMult); 
             
             if (state.frameCount % Math.floor(attackRate) === 0) {
               state.screenShake = isPhase2 ? 15 : 10; // 공격 시 화면 흔들림
@@ -1256,7 +1288,7 @@ export default function App() {
               const bossIndex = Math.max(0, BOSSES.findIndex(b => b.name === e.bossType));
               const bossConfig = BOSSES[bossIndex];
               const bulletCountMult = (bossConfig?.bulletCount || 1.0) * (isPhase2 ? 1.2 : 1.0) * BOSS_BULLET_COUNT_MULTIPLIER; // Use constant for bullet count
-              const bulletSpeedMult = (bossConfig?.bulletSpeed || 1.0) * (isPhase2 ? 1.2 : 1.0);
+              const bulletSpeedMult = (bossConfig?.bulletSpeed || 1.0) * (isPhase3 ? 1.2 : (isPhase2 ? 1.1 : 1.0));
               
               if (e.effectType === 'ALL') {
                 if (!e.currentEffect || (e.effectTimer && e.effectTimer <= 0)) {
@@ -1425,12 +1457,12 @@ export default function App() {
               } else if (element === 'WATERFALL') {
                 createFloatingText(state, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "WATERFALL!", "#1E90FF", true);
                 if (patternType % 2 === 0) {
-                  const waterfallCount = Math.ceil(15 * bulletCountMult);
+                  const waterfallCount = Math.ceil(15 * 0.8 * bulletCountMult);
                   for (let i = 0; i < waterfallCount; i++) {
                     state.enemyBullets.push({ id: Math.random(), x: Math.random() * CANVAS_WIDTH, y: -20, vx: 0, vy: (5 + Math.random() * 5) * bulletSpeedMult, type: 'WATERFALL' });
                   }
                 } else { // Tidal Wave
-                  const waveCount = Math.ceil(20 * bulletCountMult);
+                  const waveCount = Math.ceil(20 * 0.8 * bulletCountMult);
                   for(let i=0; i<waveCount; i++) {
                     state.enemyBullets.push({ id: Math.random(), x: (CANVAS_WIDTH / waveCount) * i, y: -50, vx: 0, vy: baseSpeed * 1.2, type: 'WATERFALL' });
                   }
@@ -1707,14 +1739,15 @@ export default function App() {
             if (!b.hitGates) b.hitGates = [];
             b.hitGates.push(g.id);
 
-            const pierceProb = b.pierceCount > 0 ? PIERCE_BASE_PROBABILITY + (b.pierceCount - 1) * PIERCE_PROBABILITY_PER_LEVEL : (b.rabbitPierce ? 0.1 : 0);
+            let pierceProb = b.pierceCount > 0 ? PIERCE_BASE_PROBABILITY + (b.pierceCount - 1) * PIERCE_PROBABILITY_PER_LEVEL : (b.rabbitPierce ? 0.1 : 0);
+            if (b.type === 'LASER') pierceProb += CHAR_LASER_PIERCE_PROBABILITY;
             const doesPierce = Math.random() < (b.rabbitPierce && b.pierceCount > 0 ? pierceProb + 0.1 : pierceProb);
 
             if (!doesPierce) {
               state.bullets.splice(i, 1);
               bulletDestroyed = true;
             }
-            createParticles(state, b.x, b.y, '#FFF', 3);
+            createParticles(state, b.x, b.y, b.type === 'FIRE' ? '#FF4500' : b.type === 'POISON' ? '#22c55e' : b.type === 'ICE' ? '#00FFFF' : b.type === 'HOMING' ? '#FF00FF' : b.type === 'LASER' ? '#00FF00' : b.type === 'ELECTRIC' ? '#FFFF00' : '#FFF', 3);
             
             // Improve gate based on hits
             const hitsNeeded = getHitsNeeded(g.type, g.value, totalCount, state.stage);
@@ -1775,8 +1808,33 @@ export default function App() {
           
           const dist = Math.hypot(b.x - e.x, b.y - e.y);
           if (dist < e.size + b.size) {
-            e.hp -= b.damage;
+            let finalDamage = b.damage;
+            let isWeakness = false;
+
+            if (e.type === 'BOSS') {
+              const bossElem = e.effectType === 'ALL' ? e.currentEffect : e.effectType;
+              const playerElem = b.type;
+              
+              if (bossElem && playerElem && playerElem !== 'NORMAL' && playerElem !== 'HOMING') {
+                if (
+                  (bossElem === 'FIRE' && playerElem === 'ICE') ||
+                  (bossElem === 'WATERFALL' && playerElem === 'ICE') ||
+                  (bossElem === 'ICE' && playerElem === 'FIRE') ||
+                  (bossElem === 'POISON' && playerElem === 'FIRE') ||
+                  ((bossElem === 'ELECTRIC' || bossElem === 'THUNDER') && playerElem === 'POISON')
+                ) {
+                  finalDamage *= 1.1; // 10% 추가 데미지
+                  isWeakness = true;
+                }
+              }
+            }
+
+            e.hp -= finalDamage;
             e.hitFlash = 5;
+            
+            if (isWeakness && Math.random() < 0.2) {
+               createFloatingText(state, e.x + (Math.random()-0.5)*50, e.y - 30 + (Math.random()-0.5)*20, "WEAKNESS!", "#FF00FF");
+            }
             
             // Vampiric Bullets
             if (state.squadSkills.vampiricBullets > 0) {
@@ -1791,6 +1849,7 @@ export default function App() {
             if (b.type === 'FIRE') e.fireTimer = CHAR_FIRE_DURATION;
             if (b.type === 'POISON') e.poisonTimer = CHAR_POISON_DURATION;
             if (b.type === 'ICE') e.freezeTimer = CHAR_ICE_DURATION;
+            if (b.type === 'ELECTRIC') e.freezeTimer = CHAR_ELECTRIC_STUN_DURATION;
             
             playSound('hit');
             b.hitEnemies.push(e.id);
@@ -1805,14 +1864,15 @@ export default function App() {
               });
             }
 
-            const pierceProb = b.pierceCount > 0 ? PIERCE_BASE_PROBABILITY + (b.pierceCount - 1) * PIERCE_PROBABILITY_PER_LEVEL : (b.rabbitPierce ? 0.1 : 0);
+            let pierceProb = b.pierceCount > 0 ? PIERCE_BASE_PROBABILITY + (b.pierceCount - 1) * PIERCE_PROBABILITY_PER_LEVEL : (b.rabbitPierce ? 0.1 : 0);
+            if (b.type === 'LASER') pierceProb += CHAR_LASER_PIERCE_PROBABILITY;
             const doesPierce = Math.random() < (b.rabbitPierce && b.pierceCount > 0 ? pierceProb + 0.1 : pierceProb);
 
             if (!doesPierce) {
               state.bullets.splice(i, 1);
               bulletDestroyed = true;
             }
-            createParticles(state, b.x, b.y, b.type === 'FIRE' ? '#FF4500' : b.type === 'POISON' ? '#22c55e' : b.type === 'ICE' ? '#00FFFF' : b.type === 'HOMING' ? '#FF00FF' : '#FFF', 3);
+            createParticles(state, b.x, b.y, b.type === 'FIRE' ? '#FF4500' : b.type === 'POISON' ? '#22c55e' : b.type === 'ICE' ? '#00FFFF' : b.type === 'HOMING' ? '#FF00FF' : b.type === 'LASER' ? '#00FF00' : b.type === 'ELECTRIC' ? '#FFFF00' : '#FFF', 3);
             if (b.isCrit) createFloatingText(state, b.x, b.y, "CRIT!", "#FFD700");
             
             if (e.hp <= 0) {
@@ -1828,8 +1888,11 @@ export default function App() {
               }
               const scoreGained = Math.ceil(e.maxHp) * state.combo;
               state.score += scoreGained;
-              const coinsGained = e.type === 'BOSS' ? 10 : 1;
-              state.coins += coinsGained;
+              const coinsGained = e.type === 'BOSS' ? 10 : 0;
+              if (coinsGained > 0) {
+                state.coins += coinsGained;
+                createFloatingText(state, e.x, e.y - 40, `+${coinsGained} 💰`, "#FFD700");
+              }
               createFloatingText(state, e.x, e.y, `+${scoreGained} (x${state.combo})`, "#FFD700");
               createParticles(state, e.x, e.y, '#FF6B6B', e.type === 'BOSS' ? 50 : 15);
               
@@ -2166,10 +2229,18 @@ export default function App() {
               p.ammoType = 'HOMING';
               p.ammoTimer = 600;
               createFloatingText(state, p.x, p.y, "HOMING AMMO!", "#FF00FF");
+            } else if (item.type === 'LASER_AMMO') {
+              p.ammoType = 'LASER';
+              p.ammoTimer = 600;
+              createFloatingText(state, p.x, p.y, "LASER AMMO!", "#00FF00");
+            } else if (item.type === 'ELECTRIC_AMMO') {
+              p.ammoType = 'ELECTRIC';
+              p.ammoTimer = 600;
+              createFloatingText(state, p.x, p.y, "ELECTRIC AMMO!", "#FFFF00");
             } else if (item.type === 'COIN') {
               vibrate(10);
-              state.coins += 1;
-              createFloatingText(state, item.x, item.y, "+1", "#FFD700");
+              state.coins += 10;
+              createFloatingText(state, item.x, item.y, "+10 💰", "#FFD700");
             } else if (item.type === 'HEART') {
               state.players.forEach(p => {
                 if (!p.isDead && p.count < PLAYER_MAX_HP + state.squadSkills.maxHp) {
@@ -2464,6 +2535,8 @@ export default function App() {
           else if (item.type === 'POISON_AMMO') { color = '#22c55e'; text = '🧪'; }
           else if (item.type === 'ICE_AMMO') { color = '#00FFFF'; text = '🧊'; }
           else if (item.type === 'HOMING_AMMO') { color = '#FF00FF'; text = '🎯'; }
+          else if (item.type === 'LASER_AMMO') { color = '#00FF00'; text = '⚡'; }
+          else if (item.type === 'ELECTRIC_AMMO') { color = '#FFFF00'; text = '🌩️'; }
           else if (item.type === 'COIN') { color = '#FFD700'; text = '💰'; }
           else if (item.type === 'HEART') { color = '#FF6B6B'; text = '❤️'; }
 
@@ -2528,6 +2601,8 @@ export default function App() {
           else if (b.type === 'POISON') glowColor = '#22c55e';
           else if (b.type === 'ICE') glowColor = '#00FFFF';
           else if (b.type === 'HOMING') glowColor = '#FF00FF';
+          else if (b.type === 'LASER') glowColor = '#00FF00';
+          else if (b.type === 'ELECTRIC') glowColor = '#FFFF00';
           
           if (state.feverTime > 0) glowColor = '#FF00FF';
 
@@ -2566,34 +2641,25 @@ export default function App() {
         ctx.save();
         ctx.translate(b.x, b.y);
         
+        // Red pulsating aura for ALL enemy bullets
+        const pulse = Math.sin(state.frameCount * 0.15) * 0.2 + 0.8; // 0.6 to 1.0
+        const auraRadius = 22 * pulse;
+        
+        ctx.beginPath();
+        ctx.arc(0, 0, auraRadius, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.6)';
+        ctx.globalAlpha = 0.6;
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#ff0000';
+        ctx.fill();
+        
+        ctx.globalAlpha = 1.0;
+        ctx.shadowBlur = 0;
+        
         const bulletImg = assetsRef.current?.bossBullets[b.type?.toLowerCase() || ''];
         if (bulletImg) {
-          // Determine glow color based on type
-          let glowColor = '#ff0000'; // Default red
-          if (b.type === 'FIRE') glowColor = '#ff4500';
-          else if (b.type === 'ICE') glowColor = '#00ffff';
-          else if (b.type === 'POISON') glowColor = '#22c55e';
-          else if (b.type === 'ELECTRIC' || b.type === 'THUNDER') glowColor = '#ffff00';
-          else if (b.type === 'LASER') glowColor = '#ff00ff';
-          else if (b.type === 'WATER' || b.type === 'WATERFALL') glowColor = '#1e90ff';
-          else if (b.type === 'ROCK') glowColor = '#8b4513';
-          else if (b.type === 'STORM') glowColor = '#90a4ae';
-          
-          // Add pulsating aura
-          const pulse = Math.sin(state.frameCount * 0.15) * 0.2 + 0.8; // 0.6 to 1.0
-          const auraRadius = 22 * pulse;
-          
-          ctx.beginPath();
-          ctx.arc(0, 0, auraRadius, 0, Math.PI * 2);
-          ctx.fillStyle = glowColor;
-          ctx.globalAlpha = 0.6;
-          ctx.shadowBlur = 20;
-          ctx.shadowColor = glowColor;
-          ctx.fill();
-          
-          ctx.globalAlpha = 1.0;
           ctx.shadowBlur = 10; // Keep some glow on the image itself
-          
+          ctx.shadowColor = '#ff0000';
           // Draw the bullet image slightly larger for better visibility
           ctx.drawImage(bulletImg, -20, -20, 40, 40);
           ctx.shadowBlur = 0;
@@ -2804,12 +2870,7 @@ export default function App() {
           ctx.globalCompositeOperation = 'lighter';
           const grad = ctx.createRadialGradient(e.x, e.y, e.size * 0.4, e.x, e.y, auraRadius * pulse);
           
-          let auraColor = 'rgba(255, 0, 0, 0.8)'; // More intense red aura
-          if (e.type === 'FIRE') auraColor = 'rgba(255, 69, 0, 0.4)';
-          else if (e.type === 'ICE') auraColor = 'rgba(0, 255, 255, 0.4)';
-          else if (e.type === 'POISON') auraColor = 'rgba(34, 197, 94, 0.4)';
-          else if (e.type === 'BOMB') auraColor = 'rgba(255, 0, 255, 0.4)';
-          else if (e.type === 'WATER') auraColor = 'rgba(30, 144, 255, 0.4)';
+          let auraColor = 'rgba(255, 0, 0, 0.8)'; // Red aura for all normal enemies
           
           grad.addColorStop(0, auraColor);
           grad.addColorStop(1, 'transparent');
@@ -2930,6 +2991,8 @@ export default function App() {
           if (p.ammoType === 'POISON') ammoColor = '#22c55e';
           if (p.ammoType === 'ICE') ammoColor = '#00FFFF';
           if (p.ammoType === 'HOMING') ammoColor = '#FF00FF';
+          if (p.ammoType === 'LASER') ammoColor = '#00FF00';
+          if (p.ammoType === 'ELECTRIC') ammoColor = '#FFFF00';
           ctx.strokeStyle = ammoColor; ctx.lineWidth = 2; ctx.setLineDash([5, 5]); ctx.stroke();
           ctx.restore();
         }
@@ -3212,7 +3275,7 @@ export default function App() {
                   <button 
                     onClick={() => setShowAchievements(true)}
                     className="w-8 h-8 sm:w-10 sm:h-10 bg-slate-800 hover:bg-slate-700 rounded-full flex items-center justify-center border border-slate-700 transition-all shadow-lg"
-                    title="Achievements"
+                    title="일일 퀘스트"
                   >
                     <Target size={16} className="text-yellow-400 sm:w-5 sm:h-5" />
                   </button>
@@ -3502,7 +3565,7 @@ export default function App() {
                 </h3>
                 <ul className="text-sm text-zinc-300 space-y-2">
                   <li><span className="font-bold text-white">이동</span>: <kbd className="bg-zinc-700 px-1 rounded">WASD</kbd> 또는 <kbd className="bg-zinc-700 px-1 rounded">방향키</kbd> (모바일: 드래그)</li>
-                  <li><span className="font-bold text-white">폭탄</span>: <kbd className="bg-zinc-700 px-1 rounded">B</kbd> 또는 <kbd className="bg-zinc-700 px-1 rounded">스페이스바</kbd> (모바일: <span className="text-red-400 font-bold whitespace-nowrap">두 손가락으로 터치</span>)</li>
+                  <li><span className="font-bold text-white">폭탄</span>: <kbd className="bg-zinc-700 px-1 rounded">B</kbd> 또는 <kbd className="bg-zinc-700 px-1 rounded">스페이스바</kbd> <span className="whitespace-nowrap">(모바일: <span className="text-red-400 font-bold">두 손가락으로 터치</span>)</span></li>
                   <li><kbd className="bg-zinc-700 px-1 rounded">M</kbd> : 도움말 켜기/끄기</li>
                   <li><kbd className="bg-zinc-700 px-1 rounded">P</kbd> : 게임 일시 정지</li>
                   <li className="text-xs text-slate-400 pt-2 border-t border-white/5">* 모바일에서 피격 시 햅틱 반응(진동)이 제공됩니다.</li>
