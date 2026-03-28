@@ -3226,10 +3226,26 @@ export default function App() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const scaleX = CANVAS_WIDTH / rect.width;
-    const scaleY = CANVAS_HEIGHT / rect.height;
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
+    const canvasAspect = CANVAS_WIDTH / CANVAS_HEIGHT;
+    const rectAspect = rect.width / rect.height;
+    
+    let renderWidth, renderHeight, offsetX, offsetY;
+    if (rectAspect > canvasAspect) {
+      renderHeight = rect.height;
+      renderWidth = rect.height * canvasAspect;
+      offsetX = (rect.width - renderWidth) / 2;
+      offsetY = 0;
+    } else {
+      renderWidth = rect.width;
+      renderHeight = rect.width / canvasAspect;
+      offsetX = 0;
+      offsetY = (rect.height - renderHeight) / 2;
+    }
+    
+    const scaleX = CANVAS_WIDTH / renderWidth;
+    const scaleY = CANVAS_HEIGHT / renderHeight;
+    const x = (e.clientX - rect.left - offsetX) * scaleX;
+    const y = (e.clientY - rect.top - offsetY) * scaleY;
     
     // Calculate character's visual radius to offset the touch point to the bottom
     const playerStage = getPlayerStage(player.count);
@@ -3273,12 +3289,12 @@ export default function App() {
   return (
     <ErrorBoundary>
       <div className="fixed inset-0 bg-slate-900 flex items-center justify-center p-0 sm:p-4 font-sans select-none overflow-hidden">
-        <div className="relative w-full h-full sm:h-auto max-w-[400px] sm:max-h-[90vh] aspect-auto sm:aspect-[4/7] bg-black rounded-none sm:rounded-3xl overflow-hidden shadow-2xl ring-0 sm:ring-8 ring-slate-800">
+        <div className="relative w-full h-full max-w-[400px] max-h-[100dvh] sm:max-h-[90vh] bg-black rounded-none sm:rounded-3xl overflow-hidden shadow-2xl ring-0 sm:ring-8 ring-slate-800">
           <canvas
             ref={canvasRef}
             width={CANVAS_WIDTH}
             height={CANVAS_HEIGHT}
-            className="w-full h-full touch-none cursor-crosshair"
+            className="w-full h-full object-contain touch-none cursor-crosshair"
             onPointerDown={(e) => { handlePointerMove(e); handleMouseDown(e); }}
             onPointerMove={handlePointerMove}
             onTouchStart={handleTouchStart}
