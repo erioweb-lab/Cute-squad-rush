@@ -1151,8 +1151,8 @@ export default function App() {
           }
           const scoreGained = Math.ceil(Math.ceil(e.maxHp) * state.combo * (1 + state.squadSkills.scoreMult * 0.5));
           state.score += scoreGained;
-          const coinsGained = e.type === 'BOSS' ? 10 : 1;
-          state.coins += coinsGained;
+          const coinsGained = e.type === 'BOSS' ? 10 : 0;
+          if (coinsGained > 0) state.coins += coinsGained;
           createFloatingText(state, e.x, e.y, `+${scoreGained} (x${state.combo})`, "#FFD700");
           createFloatingText(state, e.x, e.y - 40, `+${coinsGained} 💰`, "#FFD700");
           createParticles(state, e.x, e.y, '#FF6B6B', e.type === 'BOSS' ? 50 : 15);
@@ -1201,6 +1201,13 @@ export default function App() {
             const isPhase2 = hpPercent < 0.5;
             const isPhase3 = hpPercent < 0.2;
 
+            // 보스 체력에 따른 색상 및 오라 효과
+            e.hitFlash = isPhase3 ? 0.5 : (isPhase2 ? 0.2 : 0);
+            
+            // 탄환 개수 증가 (Phase2: 10%, Phase3: 20%)
+            const bulletCountMult = (isPhase3 ? 1.2 : (isPhase2 ? 1.1 : 1.0));
+            const bulletSpeedMult = (isPhase3 ? 1.3 : (isPhase2 ? 1.15 : 1.0));
+
             if (isPhase2 && !e.phase2Announced) {
               e.phase2Announced = true;
               createFloatingText(state, e.x, e.y, "PHASE 2: ENRAGED!", "#FFFF00", true);
@@ -1219,7 +1226,7 @@ export default function App() {
             if (state.frameCount % Math.floor(attackRate) === 0) {
               state.screenShake = isPhase2 ? 15 : 10; // 공격 시 화면 흔들림
               
-              const patternCount = 6;
+              const patternCount = isPhase3 ? 8 : 6;
               const patternType = Math.floor(state.frameCount / attackRate) % patternCount;
               
               // Boss fight: spawn normal enemies
@@ -3494,7 +3501,7 @@ export default function App() {
                 </h3>
                 <ul className="text-sm text-zinc-300 space-y-2">
                   <li><span className="font-bold text-white">이동</span>: <kbd className="bg-zinc-700 px-1 rounded">WASD</kbd> 또는 <kbd className="bg-zinc-700 px-1 rounded">방향키</kbd> (모바일: 드래그)</li>
-                  <li><span className="font-bold text-white">폭탄</span>: <kbd className="bg-zinc-700 px-1 rounded">B</kbd> 또는 <kbd className="bg-zinc-700 px-1 rounded">스페이스바</kbd> (모바일: <span className="text-red-400 font-bold">두 손가락 터치</span>)</li>
+                  <li><span className="font-bold text-white">폭탄</span>: <kbd className="bg-zinc-700 px-1 rounded">B</kbd> 또는 <kbd className="bg-zinc-700 px-1 rounded">스페이스바</kbd> (모바일: <span className="text-red-400 font-bold whitespace-nowrap">두 손가락으로 터치</span>)</li>
                   <li><kbd className="bg-zinc-700 px-1 rounded">M</kbd> : 도움말 켜기/끄기</li>
                   <li><kbd className="bg-zinc-700 px-1 rounded">P</kbd> : 게임 일시 정지</li>
                   <li className="text-xs text-slate-400 pt-2 border-t border-white/5">* 모바일에서 피격 시 햅틱 반응(진동)이 제공됩니다.</li>

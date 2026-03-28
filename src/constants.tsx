@@ -45,8 +45,6 @@ import criticalBulletImg from './assets/critical-bullet.png';
 import shieldImg from './assets/items/shield.png';
 import droneImg from './assets/items/drone.png';
 export { droneImg };
-import droneOldImg from './assets/items/drone_old.png';
-export { droneOldImg };
 import fireAmmoImg from './assets/items/fire_ammo.png';
 import freezeImg from './assets/items/freeze.png';
 import poisonAmmoImg from './assets/items/poison_ammo.png';
@@ -314,9 +312,12 @@ export const INITIAL_GAME_STATE: GameState = {
   coins: 0,
   kills: 0,
   statsUpdated: false,
-  players: [{ id: 0, x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT - 150, count: 1, shield: 0, bombCount: 0, magnetTime: 0, fireTimer: 0, poisonTimer: 0, playerFreezeTimer: 0, critTimer: 0, ammoType: 'NORMAL', ammoTimer: 0, character: 'cat', isDead: false }],
-  playerCount: 1,
-  selectedCharacters: ['cat'],
+  players: [
+    { id: 0, x: CANVAS_WIDTH / 3, y: CANVAS_HEIGHT - 150, count: 1, shield: 0, bombCount: 0, magnetTime: 0, fireTimer: 0, poisonTimer: 0, playerFreezeTimer: 0, critTimer: 0, ammoType: 'NORMAL', ammoTimer: 0, character: 'cat', isDead: false },
+    { id: 1, x: (CANVAS_WIDTH / 3) * 2, y: CANVAS_HEIGHT - 150, count: 1, shield: 0, bombCount: 0, magnetTime: 0, fireTimer: 0, poisonTimer: 0, playerFreezeTimer: 0, critTimer: 0, ammoType: 'NORMAL', ammoTimer: 0, character: 'dog', isDead: false }
+  ],
+  playerCount: 2,
+  selectedCharacters: ['cat', 'dog'],
   bullets: [],
   enemyBullets: [],
   enemies: [],
