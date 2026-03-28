@@ -35,7 +35,7 @@ import {
   fireBulletImg, iceBulletImg, poisonBulletImg, electricBulletImg, laserBulletImg,
   bossFireBulletImg, bossIceBulletImg, bossPoisonBulletImg, bossElectricBulletImg, bossLaserBulletImg,
   coinImg, blackBombImg, feverImg, heartImg, magnetImg, critImg, criticalBulletImg, shieldImg,
-  droneImg,
+  droneImg, droneItemImg,
   fireAmmoImg, freezeImg, poisonAmmoImg, homingAmmoImg, iceAmmoImg,
   bg1, bg2, bg3, bg4, bg5, bg6, bg7, bg8, bg9, bg10, bg11, bg12, victoryPose
 } from './constants';
@@ -476,7 +476,7 @@ export default function App() {
     try {
       const [
         animalImg, bossImg, coinImgObj, blackBombImgObj, feverImgObj, heartImgObj, magnetImgObj, iceImgObj, fireImgObj, slimeImgObj, poisonImgObj, bombImgObj,
-        droneImgObj, shieldImgObj, freezeImgObj, critImgObj, fireAmmoImgObj, poisonAmmoImgObj, iceAmmoImgObj, homingAmmoImgObj, victoryPoseImg,
+        droneImgObj, droneItemImgObj, shieldImgObj, freezeImgObj, critImgObj, fireAmmoImgObj, poisonAmmoImgObj, iceAmmoImgObj, homingAmmoImgObj, victoryPoseImg,
         fireBulletImgObj, iceBulletImgObj, poisonBulletImgObj, electricBulletImgObj, laserBulletImgObj, normalBulletImgObj, homingBulletImgObj, criticalBulletImgObj,
         bossFireBulletImgObj, bossIceBulletImgObj, bossPoisonBulletImgObj, bossElectricBulletImgObj, bossLaserBulletImgObj,
         ...backgrounds
@@ -494,6 +494,7 @@ export default function App() {
         loadLocalImage(poisonImg),
         loadLocalImage(bombImg),
         loadLocalImage(droneImg),
+        loadLocalImage(droneItemImg),
         loadLocalImage(shieldImg),
         loadLocalImage(freezeImg),
         loadLocalImage(critImg),
@@ -591,7 +592,7 @@ export default function App() {
           fever: processImage(feverImgObj),
           heart: processImage(heartImgObj),
           magnet: processImage(magnetImgObj),
-          drone: processImage(droneImgObj),
+          drone: processImage(droneItemImgObj),
           drone_equipped: processImage(droneImgObj),
           shield: processImage(shieldImgObj),
           freeze: processImage(freezeImgObj),
@@ -3226,7 +3227,7 @@ export default function App() {
 
               <div className="flex flex-col items-center justify-center flex-1 w-full max-w-md mx-auto py-1">
                 <h1 className="text-2xl sm:text-4xl font-black mb-0 text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-pink-500 leading-tight drop-shadow-2xl">
-                  CUTE SQUAD RUSH
+                  ANIMAL RUSH
                 </h1>
 
                 {/* High Score Display */}
