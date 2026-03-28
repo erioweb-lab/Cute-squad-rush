@@ -60,6 +60,7 @@ export default function App() {
   });
   const highScoreRef = useRef(highScore);
   useEffect(() => { highScoreRef.current = highScore; }, [highScore]);
+  const lastTouchTimeRef = useRef<number>(0);
   const [skillChoices, setSkillChoices] = useState<RogueliteSkill[]>([]);
   const [showShop, setShowShop] = useState(false);
   const [showPause, setShowPause] = useState(false);
@@ -1650,7 +1651,7 @@ export default function App() {
           const bulletCount = Math.max(1, Math.min(Math.floor(p.count / BULLET_COUNT_HP_THRESHOLD) + 1, 12)) + state.squadSkills.multiShot + (upgradesRef.current.multiShot || 0);
           const effectiveHpForDamage = Math.max(PLAYER_MIN_DAMAGE_HP_EQUIVALENT, p.count);
           const damageMultiplier = Math.max(1, (effectiveHpForDamage / bulletCount) * BULLET_DAMAGE_HP_SCALING) * (1 + (upgradesRef.current.damageUp || 0) * 0.05) * Math.pow(1.2, state.squadSkills.damageUp) * PLAYER_DAMAGE_MULTIPLIER;
-          const baseCritChance = (state.squadSkills.critChance + (upgradesRef.current.critChance || 0)) / 100;
+          const baseCritChance = (state.squadSkills.critChance + (upgradesRef.current.critChance || 0) + (getPlayerStage(p.count) === 4 ? 5 : 0)) / 100;
           const isCritItemActive = p.critTimer > 0;
           const totalCritChance = isCritItemActive ? 0.5 + baseCritChance : baseCritChance;
           
@@ -2303,10 +2304,7 @@ export default function App() {
       state.players.forEach(p => {
         p.count = Math.max(0, Math.min(PLAYER_MAX_HP + state.squadSkills.maxHp, Math.floor(p.count)));
         
-        // Trigger Fever Mode if character is at stage 5 (Level 5)
-        if (getPlayerStage(p.count) === 4 && state.feverTime < 60) {
-          state.feverTime = 300 + state.squadSkills.feverDuration;
-        }
+        // No fever at stage 5
 
         if (p.count <= 0) p.isDead = true;
         // Global clamping to prevent getting stuck out of bounds from external forces
@@ -3239,6 +3237,18 @@ export default function App() {
 
   const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
     if (gameState.current.status !== 'PLAYING') return;
+    
+    const now = Date.now();
+    if (e.touches.length === 1) {
+      if (now - lastTouchTimeRef.current < 300) {
+        gameState.current.isPaused = !gameState.current.isPaused;
+        setShowPause(gameState.current.isPaused);
+        lastTouchTimeRef.current = 0;
+        return;
+      }
+      lastTouchTimeRef.current = now;
+    }
+
     // Detonate bomb if two fingers touch the screen
     if (e.touches.length >= 2) {
       useBomb(0);
@@ -3574,9 +3584,9 @@ export default function App() {
                 </h3>
                 <ul className="text-sm text-zinc-300 space-y-2">
                   <li><span className="font-bold text-white">이동</span>: <kbd className="bg-zinc-700 px-1 rounded">WASD</kbd> 또는 <kbd className="bg-zinc-700 px-1 rounded">방향키</kbd> (모바일: 드래그)</li>
-                  <li><span className="font-bold text-white">폭탄</span>: <kbd className="bg-zinc-700 px-1 rounded">B</kbd> 또는 <kbd className="bg-zinc-700 px-1 rounded">스페이스바</kbd> <span className="whitespace-nowrap">(모바일: <span className="text-red-400 font-bold">두 손가락으로 터치</span>)</span></li>
+                  <li><span className="font-bold text-white">폭탄</span>: <kbd className="bg-zinc-700 px-1 rounded">B</kbd> 또는 <kbd className="bg-zinc-700 px-1 rounded">스페이스바</kbd> <span className="whitespace-nowrap">(모바일: <span className="text-red-400 font-bold">두 손가락 터치</span>)</span></li>
+                  <li><span className="font-bold text-white">일시정지</span>: <kbd className="bg-zinc-700 px-1 rounded">P</kbd> <span className="whitespace-nowrap">(모바일: <span className="text-blue-400 font-bold">두 번 터치</span>)</span></li>
                   <li><kbd className="bg-zinc-700 px-1 rounded">M</kbd> : 도움말 켜기/끄기</li>
-                  <li><kbd className="bg-zinc-700 px-1 rounded">P</kbd> : 게임 일시 정지</li>
                   <li className="text-xs text-slate-400 pt-2 border-t border-white/5">* 모바일에서 피격 시 햅틱 반응(진동)이 제공됩니다.</li>
                   <li className="text-xs text-slate-400">* 보호막과 폭탄은 최대 3개까지 보유 가능합니다.</li>
                 </ul>
