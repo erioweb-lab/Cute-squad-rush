@@ -446,6 +446,12 @@ export default function App() {
     if (savedHighScore) setHighScore(savedHighScore);
     if (savedUpgrades) setUpgrades(savedUpgrades);
     if (savedStats) setStats(savedStats);
+
+    // Show manual on first start
+    if (localStorage.getItem('nano_banana_first_start') === null) {
+      setShowManual(true);
+      localStorage.setItem('nano_banana_first_start', 'false');
+    }
   }, []);
   
   
@@ -3623,27 +3629,22 @@ export default function App() {
                 <h3 className="text-lg font-bold text-cyan-400 mb-3 flex items-center gap-2">
                   <Info size={20} /> 파워업 아이템
                 </h3>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-2 bg-black/20 rounded-lg">
-                    <div className="w-8 h-8 bg-blue-500/20 rounded flex items-center justify-center">🛡️</div>
-                    <div>
-                      <div className="text-xs font-bold">보호막</div>
-                      <div className="text-[10px] text-slate-400">1회 피해를 막아줍니다.</div>
-                    </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex items-center gap-2 p-2 bg-black/20 rounded-lg">
+                    <img src="/assets/items/shield.png" alt="shield" className="w-8 h-8" />
+                    <div className="text-[10px]">보호막</div>
                   </div>
-                  <div className="flex items-center gap-3 p-2 bg-black/20 rounded-lg">
-                    <div className="w-8 h-8 bg-red-500/20 rounded flex items-center justify-center">💣</div>
-                    <div>
-                      <div className="text-xs font-bold">폭탄</div>
-                      <div className="text-[10px] text-slate-400">화면의 모든 적을 제거합니다.</div>
-                    </div>
+                  <div className="flex items-center gap-2 p-2 bg-black/20 rounded-lg">
+                    <img src="/assets/items/black_bomb.png" alt="bomb" className="w-8 h-8" />
+                    <div className="text-[10px]">폭탄</div>
                   </div>
-                  <div className="flex items-center gap-3 p-2 bg-black/20 rounded-lg">
-                    <div className="w-8 h-8 bg-yellow-500/20 rounded flex items-center justify-center">🧲</div>
-                    <div>
-                      <div className="text-xs font-bold">자석</div>
-                      <div className="text-[10px] text-slate-400">아이템을 끌어당깁니다.</div>
-                    </div>
+                  <div className="flex items-center gap-2 p-2 bg-black/20 rounded-lg">
+                    <img src="/assets/items/magnet.png" alt="magnet" className="w-8 h-8" />
+                    <div className="text-[10px]">자석</div>
+                  </div>
+                  <div className="flex items-center gap-2 p-2 bg-black/20 rounded-lg">
+                    <img src="/assets/items/heart.png" alt="heart" className="w-8 h-8" />
+                    <div className="text-[10px]">하트</div>
                   </div>
                 </div>
               </section>
@@ -3654,27 +3655,20 @@ export default function App() {
                 </h3>
                 <div className="space-y-3">
                   {[
-                    { s: 1, n: '프로스트 웜', e: '빙결', p: 2, c: 'text-cyan-400', d: '패턴: 확산탄, 빙결 비, 빙결 가시, 프리징 블래스트' },
-                    { s: 2, n: '마그마 웜', e: '화염', p: 3, c: 'text-red-400', d: '패턴: 확산탄, 화염 레이저, 화염 고리, 화염 비' },
-                    { s: 3, n: '토식 뮤턴트', e: '독', p: 4, c: 'text-green-400', d: '패턴: 독 고리, 회전 독탄, 독 비, 유도 독탄' },
-                    { s: 4, n: '썬더 비스트', e: '전기', p: 2, c: 'text-yellow-400', d: '패턴: 유도 전기탄, 전기 레이저, 전기장, 체인 라이트닝' },
-                    { s: 5, n: '워터 크라켄', e: '폭포', p: 1, c: 'text-blue-400', d: '패턴: 폭포, 해일' },
-                    { s: 6, n: '윈드 스피릿', e: '바람', p: 2, c: 'text-slate-300', d: '패턴: 강풍, 바람 탄환' },
-                    { s: 7, n: '스톰 버드', e: '폭풍', p: 2, c: 'text-slate-400', d: '패턴: 폭풍우, 회오리' },
-                    { s: 8, n: '어스 골렘', e: '지진', p: 5, c: 'text-amber-700', d: '패턴: 지진, 낙석' },
-                    { s: 9, n: '레이저 센티넬', e: '레이저', p: 3, c: 'text-purple-400', d: '패턴: 레이저 난사, 회전 레이저' },
-                    { s: 10, n: '썬더 갓', e: '번개', p: 2, c: 'text-indigo-400', d: '패턴: 낙뢰, 번개 폭풍' },
-                    { s: '최종', n: '보이드 엔티티', e: '모두', p: 2, c: 'text-white', d: '패턴: 모든 속성 공격 전환' },
+                    { s: 1, n: 'Ice Monarch', e: '빙결', img: 'ice_monarch.png' },
+                    { s: 2, n: 'Inferno King', e: '화염', img: 'inferno_king.png' },
+                    { s: 3, n: 'Toxic Cloud', e: '독', img: 'toxic_cloud.png' },
+                    { s: 4, n: 'Thunder Dragon', e: '전기', img: 'thunder_dragon.png' },
+                    { s: 5, n: 'Vortex Bringer', e: '물', img: 'vortex_bringer.png' },
+                    { s: 6, n: 'Rock Cracker', e: '바위', img: 'rock_cracker.png' },
+                    { s: 7, n: 'Beam Sentinel', e: '광선', img: 'beam_sentinel.png' },
+                    { s: 8, n: 'Void Entity', e: '공허', img: 'void_entity.png' },
                   ].map((b, i) => (
-                    <div key={i} className="flex justify-between items-center text-xs border-b border-white/5 pb-2 last:border-0">
+                    <div key={i} className="flex items-center gap-2 p-2 bg-black/20 rounded-lg">
+                      <img src={`/assets/bosses/${b.img}`} alt={b.n} className="w-10 h-10" />
                       <div>
-                        <span className="text-slate-500 mr-2">STG {b.s}</span>
-                        <span className={`font-bold ${b.c}`}>{b.n}</span>
-                        <div className="text-[10px] text-slate-400">{b.d}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-[10px] text-slate-400 uppercase">{b.e}</div>
-                        <div className="font-mono text-yellow-500">ATK: {b.p}</div>
+                        <div className="text-xs font-bold">{b.n}</div>
+                        <div className="text-[10px] text-slate-400">속성: {b.e}</div>
                       </div>
                     </div>
                   ))}
@@ -3709,10 +3703,15 @@ export default function App() {
             </div>
             
             <button 
-              onClick={() => setShowManual(false)}
+              onClick={() => {
+                setShowManual(false);
+                if (reactStateStatus === 'START') {
+                  handlePlayClick();
+                }
+              }}
               className="mt-6 w-full py-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-black rounded-2xl shadow-lg transform transition active:scale-95"
             >
-              게임으로 돌아가기
+              {reactStateStatus === 'START' ? '게임 시작' : '확인'}
             </button>
           </div>
         )}
