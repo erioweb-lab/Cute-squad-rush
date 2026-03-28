@@ -1,10 +1,10 @@
-# 🎮 Elemental Boss Rush: Squad Survival
+# 🎮 Animal Rush: Squad Survival
 
 A high-octane bullet hell game featuring a growing squad of animals, math-based progression, and 12 unique elemental bosses.
 
 ## 🚀 Game Overview
 
-In **Elemental Boss Rush**, you control a squad of animals (Cats, Dogs, or Rabbits). Your goal is to navigate through a dangerous field of slimes, pass through math gates to multiply your squad size, and survive intense boss encounters.
+In **Animal Rush**, you control a squad of animals (Cats, Dogs, or Rabbits). Your goal is to navigate through a dangerous field of slimes, pass through math gates to multiply your squad size, and survive intense boss encounters.
 
 ## 🕹️ 게임 방법 (How to Play)
 
