@@ -318,8 +318,8 @@ export const INITIAL_GAME_STATE: GameState = {
   kills: 0,
   statsUpdated: false,
   players: [
-    { id: 0, x: CANVAS_WIDTH / 3, y: CANVAS_HEIGHT - 150, count: 1, shield: 0, bombCount: 0, magnetTime: 0, fireTimer: 0, poisonTimer: 0, playerFreezeTimer: 0, critTimer: 0, ammoType: 'NORMAL', ammoTimer: 0, character: 'cat', isDead: false },
-    { id: 1, x: (CANVAS_WIDTH / 3) * 2, y: CANVAS_HEIGHT - 150, count: 1, shield: 0, bombCount: 0, magnetTime: 0, fireTimer: 0, poisonTimer: 0, playerFreezeTimer: 0, critTimer: 0, ammoType: 'NORMAL', ammoTimer: 0, character: 'dog', isDead: false }
+    { id: 0, x: CANVAS_WIDTH / 3, y: CANVAS_HEIGHT - 150, count: 1, shield: 0, bombCount: 0, magnetTime: 0, fireTimer: 0, poisonTimer: 0, playerFreezeTimer: 0, critTimer: 0, ammoTimers: {}, character: 'cat', isDead: false },
+    { id: 1, x: (CANVAS_WIDTH / 3) * 2, y: CANVAS_HEIGHT - 150, count: 1, shield: 0, bombCount: 0, magnetTime: 0, fireTimer: 0, poisonTimer: 0, playerFreezeTimer: 0, critTimer: 0, ammoTimers: {}, character: 'dog', isDead: false }
   ],
   playerCount: 2,
   selectedCharacters: ['cat', 'dog'],
@@ -583,14 +583,13 @@ export type GameState = {
     poisonTimer: number;
     playerFreezeTimer: number;
     critTimer: number;
-    ammoType: 'NORMAL' | 'FIRE' | 'POISON' | 'ICE' | 'HOMING' | 'LASER' | 'ELECTRIC';
-    ammoTimer: number;
+    ammoTimers: Record<string, number>;
     character: string;
     isDead: boolean;
   }>;
   playerCount: number;
   selectedCharacters: string[];
-  bullets: Array<{ x: number; y: number; vx?: number; vy?: number; damage: number; id: number; type: 'NORMAL' | 'FIRE' | 'POISON' | 'ICE' | 'HOMING' | 'LASER' | 'ELECTRIC'; isCrit: boolean; rabbitPierce?: boolean; pierceCount: number; hitEnemies: number[]; hitGates?: number[]; size: number }>;
+  bullets: Array<{ x: number; y: number; vx?: number; vy?: number; damage: number; id: number; types: string[]; isCrit: boolean; rabbitPierce?: boolean; pierceCount: number; hitEnemies: number[]; hitGates?: number[]; size: number }>;
   enemyBullets: Array<{ x: number; y: number; vx: number; vy: number; id: number; isBoss?: boolean; type?: 'FIRE' | 'ICE' | 'POISON' | 'ELECTRIC' | 'NORMAL' | 'ARROW' | 'BOMB' | 'WATER' | 'WATERFALL' | 'ROCK' | 'LASER' | 'STORM' | 'THUNDER' }>;
   enemies: Array<{ x: number; y: number; hp: number; maxHp: number; size: number; id: number; speed: number; type: 'NORMAL' | 'FIRE' | 'WATER' | 'ICE' | 'POISON' | 'BOMB' | 'ARCHER' | 'BOSS' | 'SLIME'; bossType?: string; effectType?: 'FIRE' | 'ICE' | 'POISON' | 'ELECTRIC' | 'WATERFALL' | 'WIND' | 'THUNDER' | 'EARTHQUAKE' | 'LASER' | 'STORM' | 'ALL'; currentEffect?: 'FIRE' | 'ICE' | 'POISON' | 'ELECTRIC' | 'WATERFALL' | 'WIND' | 'THUNDER' | 'EARTHQUAKE' | 'LASER' | 'STORM'; effectTimer?: number; hitFlash?: number; fireTimer?: number; poisonTimer?: number; freezeTimer?: number; spawnFrame?: number; phase2Announced?: boolean; phase3Announced?: boolean }>;
   gates: Array<{ x: number; y: number; width: number; height: number; type: 'ADD' | 'MULT' | 'SUB' | 'DIV' | 'FREEZE' | 'FIRE' | 'SHIELD' | 'DRONE'; value: number; id: number; hits: number; hitFlash?: number }>;

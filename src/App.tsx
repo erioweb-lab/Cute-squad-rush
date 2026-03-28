@@ -767,8 +767,7 @@ export default function App() {
         poisonTimer: 0,
         playerFreezeTimer: 0,
         critTimer: 0,
-        ammoType: 'NORMAL',
-        ammoTimer: 0,
+        ammoTimers: {},
         character: gameState.current.selectedCharacters[i] || 'cat',
         isDead: false
       })),
@@ -1051,7 +1050,7 @@ export default function App() {
       }
 
       state.bullets.forEach(b => {
-        if (b.type === 'HOMING' && state.enemies.length > 0) {
+        if (b.types.includes('HOMING') && state.enemies.length > 0) {
           // Find nearest enemy
           let nearestEnemy = state.enemies[0];
           let minDist = Infinity;
@@ -1619,10 +1618,12 @@ export default function App() {
 
       state.players.forEach(p => {
         if (p.isDead) return;
-        if (p.ammoTimer > 0) {
-          p.ammoTimer--;
-          if (p.ammoTimer <= 0) p.ammoType = 'NORMAL';
-        }
+        Object.keys(p.ammoTimers).forEach(type => {
+          if (p.ammoTimers[type] > 0) {
+            p.ammoTimers[type]--;
+            if (p.ammoTimers[type] <= 0) delete p.ammoTimers[type];
+          }
+        });
         if (p.critTimer > 0) {
           p.critTimer--;
         }
@@ -1683,7 +1684,7 @@ export default function App() {
               x: finalX,
               y: p.y - circleRadius + offsetY + BULLET_SPAWN_OFFSET_Y,
               damage: (state.feverTime > 0 ? FEVER_DAMAGE_MULTIPLIER : 1) * damageMultiplier * critMultiplier * 1.5 * BULLET_POWER_MULTIPLIER * (p.character === 'dog' ? 1.1 : 1),
-              type: p.ammoType,
+              types: Object.keys(p.ammoTimers).length > 0 ? Object.keys(p.ammoTimers) : ['NORMAL'],
               isCrit: isCrit,
               rabbitPierce: p.character === 'rabbit',
               pierceCount: state.squadSkills.pierce + state.squadSkills.ghostBullets + (upgradesRef.current.pierce || 0),
@@ -1710,7 +1711,7 @@ export default function App() {
               y: droneY, 
               damage: 2 * (1 + (upgradesRef.current.damageUp || 0) * 0.05) * Math.pow(1.2, state.squadSkills.damageUp) * (p.critTimer > 0 ? 2 : 1) * BULLET_POWER_MULTIPLIER * (p.character === 'dog' ? 1.1 : 1),
               id: Math.random(),
-              type: p.ammoType,
+              types: Object.keys(p.ammoTimers).length > 0 ? Object.keys(p.ammoTimers) : ['NORMAL'],
               isCrit: p.critTimer > 0,
               rabbitPierce: p.character === 'rabbit',
               pierceCount: state.squadSkills.pierce + state.squadSkills.ghostBullets + (upgradesRef.current.pierce || 0),
@@ -1741,14 +1742,15 @@ export default function App() {
             b.hitGates.push(g.id);
 
             let pierceProb = b.pierceCount > 0 ? PIERCE_BASE_PROBABILITY + (b.pierceCount - 1) * PIERCE_PROBABILITY_PER_LEVEL : (b.rabbitPierce ? 0.1 : 0);
-            if (b.type === 'LASER') pierceProb += CHAR_LASER_PIERCE_PROBABILITY;
+            if (b.types.includes('LASER')) pierceProb += CHAR_LASER_PIERCE_PROBABILITY;
             const doesPierce = Math.random() < (b.rabbitPierce && b.pierceCount > 0 ? pierceProb + 0.1 : pierceProb);
 
             if (!doesPierce) {
               state.bullets.splice(i, 1);
               bulletDestroyed = true;
             }
-            createParticles(state, b.x, b.y, b.type === 'FIRE' ? '#FF4500' : b.type === 'POISON' ? '#22c55e' : b.type === 'ICE' ? '#00FFFF' : b.type === 'HOMING' ? '#FF00FF' : b.type === 'LASER' ? '#00FF00' : b.type === 'ELECTRIC' ? '#FFFF00' : '#FFF', 3);
+            const pColor1 = b.types.includes('FIRE') ? '#FF4500' : b.types.includes('POISON') ? '#22c55e' : b.types.includes('ICE') ? '#00FFFF' : b.types.includes('HOMING') ? '#FF00FF' : b.types.includes('LASER') ? '#00FF00' : b.types.includes('ELECTRIC') ? '#FFFF00' : '#FFF';
+            createParticles(state, b.x, b.y, pColor1, 3);
             
             // Improve gate based on hits
             const hitsNeeded = getHitsNeeded(g.type, g.value, totalCount, state.stage);
@@ -1814,16 +1816,17 @@ export default function App() {
 
             if (e.type === 'BOSS') {
               const bossElem = e.effectType === 'ALL' ? e.currentEffect : e.effectType;
-              const playerElem = b.type;
+              const playerElems = b.types;
               
-              if (bossElem && playerElem && playerElem !== 'NORMAL' && playerElem !== 'HOMING') {
-                if (
+              if (bossElem && playerElems.length > 0 && !playerElems.includes('NORMAL') && !playerElems.includes('HOMING')) {
+                const isWeak = playerElems.some(playerElem => 
                   (bossElem === 'FIRE' && playerElem === 'ICE') ||
                   (bossElem === 'WATERFALL' && playerElem === 'ICE') ||
                   (bossElem === 'ICE' && playerElem === 'FIRE') ||
                   (bossElem === 'POISON' && playerElem === 'FIRE') ||
                   ((bossElem === 'ELECTRIC' || bossElem === 'THUNDER') && playerElem === 'POISON')
-                ) {
+                );
+                if (isWeak) {
                   finalDamage *= 1.1; // 10% 추가 데미지
                   isWeakness = true;
                 }
@@ -1847,10 +1850,10 @@ export default function App() {
               });
             }
 
-            if (b.type === 'FIRE') e.fireTimer = CHAR_FIRE_DURATION;
-            if (b.type === 'POISON') e.poisonTimer = CHAR_POISON_DURATION;
-            if (b.type === 'ICE') e.freezeTimer = CHAR_ICE_DURATION;
-            if (b.type === 'ELECTRIC') e.freezeTimer = CHAR_ELECTRIC_STUN_DURATION;
+            if (b.types.includes('FIRE')) e.fireTimer = CHAR_FIRE_DURATION;
+            if (b.types.includes('POISON')) e.poisonTimer = CHAR_POISON_DURATION;
+            if (b.types.includes('ICE')) e.freezeTimer = CHAR_ICE_DURATION;
+            if (b.types.includes('ELECTRIC')) e.freezeTimer = CHAR_ELECTRIC_STUN_DURATION;
             
             playSound('hit');
             b.hitEnemies.push(e.id);
@@ -1866,14 +1869,15 @@ export default function App() {
             }
 
             let pierceProb = b.pierceCount > 0 ? PIERCE_BASE_PROBABILITY + (b.pierceCount - 1) * PIERCE_PROBABILITY_PER_LEVEL : (b.rabbitPierce ? 0.1 : 0);
-            if (b.type === 'LASER') pierceProb += CHAR_LASER_PIERCE_PROBABILITY;
+            if (b.types.includes('LASER')) pierceProb += CHAR_LASER_PIERCE_PROBABILITY;
             const doesPierce = Math.random() < (b.rabbitPierce && b.pierceCount > 0 ? pierceProb + 0.1 : pierceProb);
 
             if (!doesPierce) {
               state.bullets.splice(i, 1);
               bulletDestroyed = true;
             }
-            createParticles(state, b.x, b.y, b.type === 'FIRE' ? '#FF4500' : b.type === 'POISON' ? '#22c55e' : b.type === 'ICE' ? '#00FFFF' : b.type === 'HOMING' ? '#FF00FF' : b.type === 'LASER' ? '#00FF00' : b.type === 'ELECTRIC' ? '#FFFF00' : '#FFF', 3);
+            const pColor2 = b.types.includes('FIRE') ? '#FF4500' : b.types.includes('POISON') ? '#22c55e' : b.types.includes('ICE') ? '#00FFFF' : b.types.includes('HOMING') ? '#FF00FF' : b.types.includes('LASER') ? '#00FF00' : b.types.includes('ELECTRIC') ? '#FFFF00' : '#FFF';
+            createParticles(state, b.x, b.y, pColor2, 3);
             if (b.isCrit) createFloatingText(state, b.x, b.y, "CRIT!", "#FFD700");
             
             if (e.hp <= 0) {
@@ -2215,28 +2219,22 @@ export default function App() {
               p.critTimer = 600; // 10 seconds
               createFloatingText(state, p.x, p.y, "CRITICAL HIT!", "#FFD700");
             } else if (item.type === 'FIRE') {
-              p.ammoType = 'FIRE';
-              p.ammoTimer = 600;
+              p.ammoTimers['FIRE'] = 600;
               createFloatingText(state, p.x, p.y, "FIRE!", "#FF4500");
             } else if (item.type === 'POISON_AMMO') {
-              p.ammoType = 'POISON';
-              p.ammoTimer = 600;
+              p.ammoTimers['POISON'] = 600;
               createFloatingText(state, p.x, p.y, "POISON AMMO!", "#22c55e");
             } else if (item.type === 'ICE_AMMO') {
-              p.ammoType = 'ICE';
-              p.ammoTimer = 600;
+              p.ammoTimers['ICE'] = 600;
               createFloatingText(state, p.x, p.y, "ICE AMMO!", "#00FFFF");
             } else if (item.type === 'HOMING_AMMO') {
-              p.ammoType = 'HOMING';
-              p.ammoTimer = 600;
+              p.ammoTimers['HOMING'] = 600;
               createFloatingText(state, p.x, p.y, "HOMING AMMO!", "#FF00FF");
             } else if (item.type === 'LASER_AMMO') {
-              p.ammoType = 'LASER';
-              p.ammoTimer = 600;
+              p.ammoTimers['LASER'] = 600;
               createFloatingText(state, p.x, p.y, "LASER AMMO!", "#00FF00");
             } else if (item.type === 'ELECTRIC_AMMO') {
-              p.ammoType = 'ELECTRIC';
-              p.ammoTimer = 600;
+              p.ammoTimers['ELECTRIC'] = 600;
               createFloatingText(state, p.x, p.y, "ELECTRIC AMMO!", "#FFFF00");
             } else if (item.type === 'COIN') {
               vibrate(10);
@@ -2585,7 +2583,8 @@ export default function App() {
       // Draw Bullets
       state.bullets.forEach(b => {
         const radius = b.size * 4; // 4x size
-        let bulletImg = assetsRef.current?.bullets[b.type?.toLowerCase() || 'normal'];
+        const primaryType = b.types.find(t => t !== 'NORMAL') || 'NORMAL';
+        let bulletImg = assetsRef.current?.bullets[primaryType.toLowerCase() || 'normal'];
         if (b.isCrit) {
           bulletImg = assetsRef.current?.bullets?.crit || bulletImg;
         }
@@ -2595,12 +2594,12 @@ export default function App() {
           ctx.translate(b.x, b.y);
           
           let glowColor = '#FFE66D';
-          if (b.type === 'FIRE') glowColor = '#FF4500';
-          else if (b.type === 'POISON') glowColor = '#22c55e';
-          else if (b.type === 'ICE') glowColor = '#00FFFF';
-          else if (b.type === 'HOMING') glowColor = '#FF00FF';
-          else if (b.type === 'LASER') glowColor = '#00FF00';
-          else if (b.type === 'ELECTRIC') glowColor = '#FFFF00';
+          if (b.types.includes('FIRE')) glowColor = '#FF4500';
+          else if (b.types.includes('POISON')) glowColor = '#22c55e';
+          else if (b.types.includes('ICE')) glowColor = '#00FFFF';
+          else if (b.types.includes('HOMING')) glowColor = '#FF00FF';
+          else if (b.types.includes('LASER')) glowColor = '#00FF00';
+          else if (b.types.includes('ELECTRIC')) glowColor = '#FFFF00';
           
           if (state.feverTime > 0) glowColor = '#FF00FF';
 
@@ -2616,13 +2615,13 @@ export default function App() {
           let color1 = state.feverTime > 0 ? '#FF00FF' : '#FFE66D';
           let color2 = state.feverTime > 0 ? '#880088' : '#887700';
           
-          if (b.type === 'FIRE') {
+          if (b.types.includes('FIRE')) {
             color1 = '#FF4500'; color2 = '#8B0000';
-          } else if (b.type === 'POISON') {
+          } else if (b.types.includes('POISON')) {
             color1 = '#22c55e'; color2 = '#064e3b';
-          } else if (b.type === 'ICE') {
+          } else if (b.types.includes('ICE')) {
             color1 = '#00FFFF'; color2 = '#008B8B';
-          } else if (b.type === 'HOMING') {
+          } else if (b.types.includes('HOMING')) {
             color1 = '#FF00FF'; color2 = '#8B008B';
           }
 
@@ -2990,19 +2989,21 @@ export default function App() {
           ctx.restore();
         }
 
-        if (p.ammoTimer > 0) {
-          ctx.save(); ctx.translate(p.x, p.y);
-          ctx.beginPath(); ctx.arc(0, 0, visualRadius * FIRING_CIRCLE_SCALE, 0, Math.PI * 2);
-          let ammoColor = '#FFF';
-          if (p.ammoType === 'FIRE') ammoColor = '#FF4500';
-          if (p.ammoType === 'POISON') ammoColor = '#22c55e';
-          if (p.ammoType === 'ICE') ammoColor = '#00FFFF';
-          if (p.ammoType === 'HOMING') ammoColor = '#FF00FF';
-          if (p.ammoType === 'LASER') ammoColor = '#00FF00';
-          if (p.ammoType === 'ELECTRIC') ammoColor = '#FFFF00';
-          ctx.strokeStyle = ammoColor; ctx.lineWidth = 2; ctx.setLineDash([5, 5]); ctx.stroke();
-          ctx.restore();
-        }
+        Object.keys(p.ammoTimers).forEach((type, idx) => {
+          if (p.ammoTimers[type] > 0) {
+            ctx.save(); ctx.translate(p.x, p.y);
+            ctx.beginPath(); ctx.arc(0, 0, visualRadius * FIRING_CIRCLE_SCALE + idx * 4, 0, Math.PI * 2);
+            let ammoColor = '#FFF';
+            if (type === 'FIRE') ammoColor = '#FF4500';
+            else if (type === 'POISON') ammoColor = '#22c55e';
+            else if (type === 'ICE') ammoColor = '#00FFFF';
+            else if (type === 'HOMING') ammoColor = '#FF00FF';
+            else if (type === 'LASER') ammoColor = '#00FF00';
+            else if (type === 'ELECTRIC') ammoColor = '#FFFF00';
+            ctx.strokeStyle = ammoColor; ctx.lineWidth = 2; ctx.setLineDash([5, 5]); ctx.stroke();
+            ctx.restore();
+          }
+        });
         
         if (state.freezeTime > 0 && index === 0) {
           ctx.save();
@@ -3131,7 +3132,9 @@ export default function App() {
           if (p1.critTimer > 0) activeItems.push({ type: 'crit' });
           if (state.feverTime > 0) activeItems.push({ type: 'fever' });
           if (state.freezeTime > 0) activeItems.push({ type: 'freeze' });
-          if (p1.ammoTimer > 0) activeItems.push({ type: p1.ammoType?.toLowerCase() + '_ammo' });
+          Object.keys(p1.ammoTimers).forEach(type => {
+            activeItems.push({ type: type.toLowerCase() + '_ammo' });
+          });
         }
 
         const itemSize = 30;
