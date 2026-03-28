@@ -47,7 +47,6 @@ import droneImg from './assets/items/drone.png';
 import droneItemImg from './assets/items/drone_item.png';
 import laserAmmoImg from './assets/items/laser_ammo.png';
 import electricAmmoImg from './assets/items/electric_ammo.png';
-export { droneImg, droneItemImg, laserAmmoImg, electricAmmoImg };
 import fireAmmoImg from './assets/items/fire_ammo.png';
 import freezeImg from './assets/items/freeze.png';
 import poisonAmmoImg from './assets/items/poison_ammo.png';
@@ -92,6 +91,7 @@ export {
   fireBulletImg, iceBulletImg, poisonBulletImg, electricBulletImg, laserBulletImg,
   bossFireBulletImg, bossIceBulletImg, bossPoisonBulletImg, bossElectricBulletImg, bossLaserBulletImg,
   coinImg, blackBombImg, feverImg, heartImg, magnetImg, critImg, criticalBulletImg, shieldImg,
+  droneImg, droneItemImg, laserAmmoImg, electricAmmoImg,
   fireAmmoImg, freezeImg, poisonAmmoImg, homingAmmoImg, iceAmmoImg,
   bg1, bg2, bg3, bg4, bg5, bg6, bg7, bg8, bg9, bg10, bg11, bg12, victoryPose,
   acidStalkerImg, ancientCoreImg, beamSentinelImg, iceMonarchImg, infernoKingImg, rockCrackerImg,

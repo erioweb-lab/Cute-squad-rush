@@ -50,7 +50,16 @@ const characterImageMap: Record<string, string> = {
 };
 
 export default function App() {
-  const [showManual, setShowManual] = useState(false);
+  const [showManual, setShowManual] = useState(() => {
+    return localStorage.getItem('hideManual') !== 'true';
+  });
+  const [screenShakeEnabled, setScreenShakeEnabled] = useState(() => {
+    return localStorage.getItem('nano_banana_screen_shake') !== 'false';
+  });
+  const screenShakeEnabledRef = useRef(screenShakeEnabled);
+  useEffect(() => {
+    screenShakeEnabledRef.current = screenShakeEnabled;
+  }, [screenShakeEnabled]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [reactStateStatus, setReactStateStatus] = useState<'START' | 'GENERATING' | 'PLAYING' | 'GAME_OVER' | 'SKILL_SELECTION'>('START');
   const [finalScore, setFinalScore] = useState(0);
@@ -446,12 +455,6 @@ export default function App() {
     if (savedHighScore) setHighScore(savedHighScore);
     if (savedUpgrades) setUpgrades(savedUpgrades);
     if (savedStats) setStats(savedStats);
-
-    // Show manual on first start
-    if (localStorage.getItem('nano_banana_first_start') === null) {
-      setShowManual(true);
-      localStorage.setItem('nano_banana_first_start', 'false');
-    }
   }, []);
   
   
@@ -1259,37 +1262,37 @@ export default function App() {
               playSound('fever');
             }
 
-            const attackRateMult = isPhase3 ? 0.8 : (isPhase2 ? 0.9 : 1.0);
+            const attackRateMult = isPhase3 ? (1 / 1.4) : (isPhase2 ? (1 / 1.2) : 1.0);
             const attackRate = Math.max(isPhase3 ? 40 : (isPhase2 ? 60 : 120), (400 - stage * 40) * attackRateMult); 
             
+            // Boss fight: spawn normal enemies
+            if (state.frameCount % Math.floor(240 * attackRateMult) === 0) {
+              const stageIndex = Math.min(STAGES.length - 1, state.stage - 1);
+              const currentStage = STAGES[stageIndex];
+              const enemyTypes = currentStage.enemyTypes;
+              const spawnCount = 1 + stage; 
+              for (let i = 0; i < spawnCount; i++) {
+                const type = enemyTypes[Math.floor(Math.random() * enemyTypes.length)] as 'NORMAL' | 'FIRE' | 'WATER' | 'ICE' | 'POISON' | 'BOMB' | 'ARCHER';
+                const spawnDelay = Math.floor(Math.random() * 300); // 0-5 seconds delay (60fps)
+                state.spawnQueue.push({
+                  id: Math.random(),
+                  x: e.x + (Math.random() - 0.5) * 150, // Spawn near boss
+                  y: e.y + (Math.random() - 0.5) * 50 + 50, // Spawn near boss
+                  hp: 5 * stage,
+                  maxHp: 5 * stage,
+                  size: 20,
+                  speed: ENEMY_SPEED * 0.8,
+                  type: type,
+                  spawnFrame: state.frameCount + spawnDelay
+                });
+              }
+            }
+
             if (state.frameCount % Math.floor(attackRate) === 0) {
               state.screenShake = isPhase2 ? 15 : 10; // 공격 시 화면 흔들림
               
               const patternCount = isPhase3 ? 8 : 6;
               const patternType = Math.floor(state.frameCount / attackRate) % patternCount;
-              
-              // Boss fight: spawn normal enemies
-              if (state.frameCount % (isPhase2 ? 180 : 240) === 0) {
-                const stageIndex = Math.min(STAGES.length - 1, state.stage - 1);
-                const currentStage = STAGES[stageIndex];
-                const enemyTypes = currentStage.enemyTypes;
-                const spawnCount = 1 + stage; 
-                for (let i = 0; i < spawnCount; i++) {
-                  const type = enemyTypes[Math.floor(Math.random() * enemyTypes.length)] as 'NORMAL' | 'FIRE' | 'WATER' | 'ICE' | 'POISON' | 'BOMB' | 'ARCHER';
-                  const spawnDelay = Math.floor(Math.random() * 300); // 0-5 seconds delay (60fps)
-                  state.spawnQueue.push({
-                    id: Math.random(),
-                    x: e.x + (Math.random() - 0.5) * 150, // Spawn near boss
-                    y: e.y + (Math.random() - 0.5) * 50 + 50, // Spawn near boss
-                    hp: 5 * stage,
-                    maxHp: 5 * stage,
-                    size: 20,
-                    speed: ENEMY_SPEED * 0.8,
-                    type: type,
-                    spawnFrame: state.frameCount + spawnDelay
-                  });
-                }
-              }
               
               const bossIndex = Math.max(0, BOSSES.findIndex(b => b.name === e.bossType));
               const bossConfig = BOSSES[bossIndex];
@@ -1828,6 +1831,7 @@ export default function App() {
                 const isWeak = playerElems.some(playerElem => 
                   (bossElem === 'FIRE' && playerElem === 'ICE') ||
                   (bossElem === 'WATERFALL' && playerElem === 'ICE') ||
+                  (bossElem === 'WATERFALL' && playerElem === 'FIRE') ||
                   (bossElem === 'ICE' && playerElem === 'FIRE') ||
                   (bossElem === 'POISON' && playerElem === 'FIRE') ||
                   ((bossElem === 'ELECTRIC' || bossElem === 'THUNDER') && playerElem === 'POISON')
@@ -2408,9 +2412,11 @@ export default function App() {
       
       // Screen Shake
       if (state.screenShake > 0) {
-        const dx = (Math.random() - 0.5) * state.screenShake;
-        const dy = (Math.random() - 0.5) * state.screenShake;
-        ctx.translate(dx, dy);
+        if (screenShakeEnabledRef.current) {
+          const dx = (Math.random() - 0.5) * state.screenShake;
+          const dy = (Math.random() - 0.5) * state.screenShake;
+          ctx.translate(dx, dy);
+        }
         state.screenShake *= 0.9;
         if (state.screenShake < 0.5) state.screenShake = 0;
       }
@@ -3408,6 +3414,18 @@ export default function App() {
                   >
                     <ShoppingCart size={12} /> UPGRADE SQUAD
                   </button>
+                  <label className="flex items-center justify-center gap-2 mt-1 text-[10px] text-slate-300 cursor-pointer hover:text-white transition-colors">
+                    <input 
+                      type="checkbox" 
+                      checked={screenShakeEnabled}
+                      onChange={(e) => {
+                        setScreenShakeEnabled(e.target.checked);
+                        localStorage.setItem('nano_banana_screen_shake', e.target.checked ? 'true' : 'false');
+                      }}
+                      className="w-3 h-3 rounded border-slate-600 bg-slate-800 text-orange-500 focus:ring-orange-500 focus:ring-offset-slate-900"
+                    />
+                    화면 흔들림 효과
+                  </label>
                 </div>
               </div>
             </div>
@@ -3437,6 +3455,18 @@ export default function App() {
               >
                 메인화면으로 가기
               </button>
+              <label className="flex items-center justify-center gap-3 mt-4 text-sm text-slate-300 cursor-pointer hover:text-white transition-colors">
+                <input 
+                  type="checkbox" 
+                  checked={screenShakeEnabled}
+                  onChange={(e) => {
+                    setScreenShakeEnabled(e.target.checked);
+                    localStorage.setItem('nano_banana_screen_shake', e.target.checked ? 'true' : 'false');
+                  }}
+                  className="w-5 h-5 rounded border-slate-600 bg-slate-800 text-orange-500 focus:ring-orange-500 focus:ring-offset-slate-900"
+                />
+                화면 흔들림 효과
+              </label>
             </div>
           </div>
         )}
@@ -3626,25 +3656,44 @@ export default function App() {
               </section>
 
               <section className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                <h3 className="text-lg font-bold text-green-400 mb-3 flex items-center gap-2">
+                  <Gamepad2 size={20} /> 게이트 (Gates)
+                </h3>
+                <p className="text-[11px] text-zinc-300 leading-relaxed mb-2">
+                  화면 위에서 내려오는 게이트를 통과하거나 공격하여 캐릭터의 파워(HP)를 변경할 수 있습니다.
+                </p>
+                <ul className="text-sm text-zinc-300 space-y-2">
+                  <li><span className="font-bold text-cyan-400">더하기(+) / 곱하기(×)</span>: 통과 시 파워가 증가합니다. 총으로 쏘면 수치가 더 커집니다.</li>
+                  <li><span className="font-bold text-red-400">빼기(-) / 나누기(÷)</span>: 통과 시 파워가 감소합니다. 총으로 쏘면 수치가 줄어들며, 빼기 게이트는 0이 되면 더하기 게이트로 변환됩니다.</li>
+                  <li><span className="font-bold text-yellow-400">특수 게이트</span>: FREEZE, FIRE, SHIELD, DRONE 게이트는 통과할 수 없는 장애물이지만, 파괴 시 해당 속성의 아이템을 떨어뜨립니다.</li>
+                </ul>
+              </section>
+
+              <section className="bg-white/5 p-4 rounded-2xl border border-white/10">
                 <h3 className="text-lg font-bold text-cyan-400 mb-3 flex items-center gap-2">
                   <Info size={20} /> 파워업 아이템
                 </h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="flex items-center gap-2 p-2 bg-black/20 rounded-lg">
-                    <img src="/assets/items/shield.png" alt="shield" className="w-8 h-8" />
-                    <div className="text-[10px]">보호막</div>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-2 bg-black/20 rounded-lg">
+                    <div className="w-8 h-8 bg-blue-500/20 rounded flex items-center justify-center">🛡️</div>
+                    <div>
+                      <div className="text-xs font-bold">보호막</div>
+                      <div className="text-[10px] text-slate-400">1회 피해를 막아줍니다.</div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 p-2 bg-black/20 rounded-lg">
-                    <img src="/assets/items/black_bomb.png" alt="bomb" className="w-8 h-8" />
-                    <div className="text-[10px]">폭탄</div>
+                  <div className="flex items-center gap-3 p-2 bg-black/20 rounded-lg">
+                    <div className="w-8 h-8 bg-red-500/20 rounded flex items-center justify-center">💣</div>
+                    <div>
+                      <div className="text-xs font-bold">폭탄</div>
+                      <div className="text-[10px] text-slate-400">화면의 모든 적을 제거합니다.</div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 p-2 bg-black/20 rounded-lg">
-                    <img src="/assets/items/magnet.png" alt="magnet" className="w-8 h-8" />
-                    <div className="text-[10px]">자석</div>
-                  </div>
-                  <div className="flex items-center gap-2 p-2 bg-black/20 rounded-lg">
-                    <img src="/assets/items/heart.png" alt="heart" className="w-8 h-8" />
-                    <div className="text-[10px]">하트</div>
+                  <div className="flex items-center gap-3 p-2 bg-black/20 rounded-lg">
+                    <div className="w-8 h-8 bg-yellow-500/20 rounded flex items-center justify-center">🧲</div>
+                    <div>
+                      <div className="text-xs font-bold">자석</div>
+                      <div className="text-[10px] text-slate-400">아이템을 끌어당깁니다.</div>
+                    </div>
                   </div>
                 </div>
               </section>
@@ -3655,20 +3704,27 @@ export default function App() {
                 </h3>
                 <div className="space-y-3">
                   {[
-                    { s: 1, n: 'Ice Monarch', e: '빙결', img: 'ice_monarch.png' },
-                    { s: 2, n: 'Inferno King', e: '화염', img: 'inferno_king.png' },
-                    { s: 3, n: 'Toxic Cloud', e: '독', img: 'toxic_cloud.png' },
-                    { s: 4, n: 'Thunder Dragon', e: '전기', img: 'thunder_dragon.png' },
-                    { s: 5, n: 'Vortex Bringer', e: '물', img: 'vortex_bringer.png' },
-                    { s: 6, n: 'Rock Cracker', e: '바위', img: 'rock_cracker.png' },
-                    { s: 7, n: 'Beam Sentinel', e: '광선', img: 'beam_sentinel.png' },
-                    { s: 8, n: 'Void Entity', e: '공허', img: 'void_entity.png' },
+                    { s: 1, n: '프로스트 웜', e: '빙결', p: 2, c: 'text-cyan-400', d: '패턴: 확산탄, 빙결 비, 빙결 가시, 프리징 블래스트' },
+                    { s: 2, n: '마그마 웜', e: '화염', p: 3, c: 'text-red-400', d: '패턴: 확산탄, 화염 레이저, 화염 고리, 화염 비' },
+                    { s: 3, n: '토식 뮤턴트', e: '독', p: 4, c: 'text-green-400', d: '패턴: 독 고리, 회전 독탄, 독 비, 유도 독탄' },
+                    { s: 4, n: '썬더 비스트', e: '전기', p: 2, c: 'text-yellow-400', d: '패턴: 유도 전기탄, 전기 레이저, 전기장, 체인 라이트닝' },
+                    { s: 5, n: '워터 크라켄', e: '폭포', p: 1, c: 'text-blue-400', d: '패턴: 폭포, 해일' },
+                    { s: 6, n: '윈드 스피릿', e: '바람', p: 2, c: 'text-slate-300', d: '패턴: 강풍, 바람 탄환' },
+                    { s: 7, n: '스톰 버드', e: '폭풍', p: 2, c: 'text-slate-400', d: '패턴: 폭풍우, 회오리' },
+                    { s: 8, n: '어스 골렘', e: '지진', p: 5, c: 'text-amber-700', d: '패턴: 지진, 낙석' },
+                    { s: 9, n: '레이저 센티넬', e: '레이저', p: 3, c: 'text-purple-400', d: '패턴: 레이저 난사, 회전 레이저' },
+                    { s: 10, n: '썬더 갓', e: '번개', p: 2, c: 'text-indigo-400', d: '패턴: 낙뢰, 번개 폭풍' },
+                    { s: '최종', n: '보이드 엔티티', e: '모두', p: 2, c: 'text-white', d: '패턴: 모든 속성 공격 전환' },
                   ].map((b, i) => (
-                    <div key={i} className="flex items-center gap-2 p-2 bg-black/20 rounded-lg">
-                      <img src={`/assets/bosses/${b.img}`} alt={b.n} className="w-10 h-10" />
+                    <div key={i} className="flex justify-between items-center text-xs border-b border-white/5 pb-2 last:border-0">
                       <div>
-                        <div className="text-xs font-bold">{b.n}</div>
-                        <div className="text-[10px] text-slate-400">속성: {b.e}</div>
+                        <span className="text-slate-500 mr-2">STG {b.s}</span>
+                        <span className={`font-bold ${b.c}`}>{b.n}</span>
+                        <div className="text-[10px] text-slate-400">{b.d}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[10px] text-slate-400 uppercase">{b.e}</div>
+                        <div className="font-mono text-yellow-500">ATK: {b.p}</div>
                       </div>
                     </div>
                   ))}
@@ -3702,17 +3758,29 @@ export default function App() {
               </section>
             </div>
             
-            <button 
-              onClick={() => {
-                setShowManual(false);
-                if (reactStateStatus === 'START') {
-                  handlePlayClick();
-                }
-              }}
-              className="mt-6 w-full py-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-black rounded-2xl shadow-lg transform transition active:scale-95"
-            >
-              {reactStateStatus === 'START' ? '게임 시작' : '확인'}
-            </button>
+            <div className="mt-6 flex flex-col gap-3">
+              <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer justify-center">
+                <input 
+                  type="checkbox" 
+                  className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-yellow-500 focus:ring-yellow-500 focus:ring-offset-slate-900"
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      localStorage.setItem('hideManual', 'true');
+                    } else {
+                      localStorage.removeItem('hideManual');
+                    }
+                  }}
+                  defaultChecked={localStorage.getItem('hideManual') === 'true'}
+                />
+                더 이상 띄우지 않음
+              </label>
+              <button 
+                onClick={() => setShowManual(false)}
+                className="w-full py-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-black rounded-2xl shadow-lg transform transition active:scale-95"
+              >
+                게임으로 돌아가기
+              </button>
+            </div>
           </div>
         )}
 
