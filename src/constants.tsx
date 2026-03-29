@@ -349,6 +349,7 @@ export const INITIAL_GAME_STATE: GameState = {
   bossActive: false,
   bossDefeated: false,
   bossDefeatedTimer: 0,
+  activeBossName: null,
   gameCleared: false,
   creditsTimer: 0,
   stage: 1,

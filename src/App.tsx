@@ -19,6 +19,7 @@ import {
   ENEMY_STUN_DURATION, ENEMY_BOMB_DAMAGE, ENEMY_SPEED, SCROLL_SPEED, SLIME_SIZE,
   ITEM_CIRCLE_SCALE, ITEM_IMAGE_SCALE, BOSS_CIRCLE_SCALE, BOSS_IMAGE_SCALE,
   BOSS_REWARD_PROBABILITY, BOSS_MAX_REWARDS, BOSS_FIRING_CONFIG, BOSS_HEALTH_CONFIG,
+  FEVER_DURATION_BASE, MAGNET_DURATION, FREEZE_DURATION, CRIT_DURATION, AMMO_DURATION, COIN_VALUE, HEART_VALUE,
   STAGE_BACKGROUNDS, CAT_PLACEHOLDER, DOG_PLACEHOLDER, RABBIT_PLACEHOLDER, RAT_PLACEHOLDER,
   bossGalleryPngSrc, getPlayerStage, ANIMALS, BOSSES, ITEMS, STAGES,
   SKILL_SELECTION_COUNT_DEFAULT, SKILL_RARITY_WEIGHTS, getStageSkillCount, SKILL_RARITY_COLORS,
@@ -2180,8 +2181,9 @@ export default function App() {
       for (let i = state.items.length - 1; i >= 0; i--) {
         const item = state.items[i];
         let hit = false;
-        state.players.forEach(p => {
-          if (p.isDead || hit) return;
+        for (let j = 0; j < state.players.length; j++) {
+          const p = state.players[j];
+          if (p.isDead) continue;
           const playerStage = getPlayerStage(p.count);
           const scale = 1 + playerStage * 0.1;
           const currentCatSize = CAT_SIZE * scale;
@@ -2268,8 +2270,9 @@ export default function App() {
             else if (item.type === 'DRONE') playSound('shoot');
             else if (item.type === 'CRIT') playSound('hit');
             else playSound('powerup');
+            break; // Break the player loop
           }
-        });
+        }
         if (hit) state.items.splice(i, 1);
       }
 
@@ -3133,27 +3136,31 @@ export default function App() {
         ctx.fillText(coinText, CANVAS_WIDTH - 20, 25);
 
         // Bomb HUD
-        const p1 = state.players[0];
-        if (p1 && !p1.isDead) {
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-          ctx.beginPath(); ctx.roundRect(CANVAS_WIDTH - 75, 50, 65, 30, 15); ctx.fill();
-          ctx.fillStyle = '#FF4444'; ctx.font = 'bold 16px Inter'; ctx.textAlign = 'right';
-          ctx.fillText(`💣 x${p1.bombCount}`, CANVAS_WIDTH - 20, 65);
-        }
+        state.players.forEach((p, index) => {
+          if (p && !p.isDead) {
+            const yOffset = 50 + index * 40;
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.beginPath(); ctx.roundRect(CANVAS_WIDTH - 75, yOffset, 65, 30, 15); ctx.fill();
+            ctx.fillStyle = index === 0 ? '#FF4444' : '#44FF44'; ctx.font = 'bold 16px Inter'; ctx.textAlign = 'right';
+            ctx.fillText(`💣 x${p.bombCount}`, CANVAS_WIDTH - 20, yOffset + 15);
+          }
+        });
 
         // Active Items HUD (Bottom)
-        const activeItems = [];
-        if (p1 && !p1.isDead) {
-          if (p1.shield > 0) activeItems.push({ type: 'shield', count: p1.shield });
-          if (state.drones.length > 0) activeItems.push({ type: 'drone', count: state.drones.length });
-          if (p1.magnetTime > 0) activeItems.push({ type: 'magnet' });
-          if (p1.critTimer > 0) activeItems.push({ type: 'crit' });
-          if (state.feverTime > 0) activeItems.push({ type: 'fever' });
-          if (state.freezeTime > 0) activeItems.push({ type: 'freeze' });
-          Object.keys(p1.ammoTimers).forEach(type => {
-            activeItems.push({ type: type.toLowerCase() + '_ammo' });
-          });
-        }
+        const activeItems: any[] = [];
+        state.players.forEach((p) => {
+          if (p && !p.isDead) {
+            if (p.shield > 0) activeItems.push({ type: 'shield', count: p.shield });
+            if (state.drones.length > 0) activeItems.push({ type: 'drone', count: state.drones.length });
+            if (p.magnetTime > 0) activeItems.push({ type: 'magnet' });
+            if (p.critTimer > 0) activeItems.push({ type: 'crit' });
+            if (state.feverTime > 0) activeItems.push({ type: 'fever' });
+            if (state.freezeTime > 0) activeItems.push({ type: 'freeze' });
+            Object.keys(p.ammoTimers).forEach(type => {
+              if (p.ammoTimers[type] > 0) activeItems.push({ type: type.toLowerCase() + '_ammo' });
+            });
+          }
+        });
 
         const itemSize = 30;
         const spacing = 15;
@@ -3357,6 +3364,29 @@ export default function App() {
                   ANIMAL RUSH
                 </h1>
 
+                <div className="mb-1 bg-white/5 backdrop-blur-md px-3 py-0.5 rounded-xl border border-white/10 flex flex-col items-center">
+                  <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Player Count</span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        gameState.current.playerCount = 1;
+                        setSelectedCharacters([selectedCharacters[0] || 'cat']);
+                      }}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold ${gameState.current.playerCount === 1 ? 'bg-blue-500 text-white' : 'bg-slate-700 text-slate-300'}`}
+                    >
+                      1P
+                    </button>
+                    <button
+                      onClick={() => {
+                        gameState.current.playerCount = 2;
+                        setSelectedCharacters([selectedCharacters[0] || 'cat', selectedCharacters[1] || 'dog']);
+                      }}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold ${gameState.current.playerCount === 2 ? 'bg-blue-500 text-white' : 'bg-slate-700 text-slate-300'}`}
+                    >
+                      2P
+                    </button>
+                  </div>
+                </div>
                 {/* High Score Display */}
                 <div className="mb-1 bg-white/5 backdrop-blur-md px-3 py-0.5 rounded-xl border border-white/10 flex flex-col items-center">
                   <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Best Record</span>
