@@ -2866,22 +2866,24 @@ export default function App() {
           if (bossImg) {
             drawImageCircle(ctx, bossImg, e.x, e.y, e.size, e.hitFlash, BOSS_CIRCLE_SCALE, BOSS_IMAGE_SCALE, 'cover');
             // Draw boss name
-            ctx.fillStyle = '#FFF';
-            ctx.font = 'bold 20px Inter';
+            const pulse = 1 + Math.sin(state.frameCount / 15) * 0.15;
+            ctx.fillStyle = `hsl(${state.frameCount % 360}, 100%, 70%)`;
+            ctx.font = `bold ${20 * pulse}px Inter`;
             ctx.textAlign = 'center';
-            ctx.shadowBlur = 4;
+            ctx.shadowBlur = 8;
             ctx.shadowColor = '#000';
-            ctx.fillText(e.bossType || 'BOSS', e.x, e.y - e.size * BOSS_CIRCLE_SCALE - 20);
+            ctx.fillText(e.bossType || 'BOSS', e.x, e.y - e.size * BOSS_CIRCLE_SCALE - 25);
             ctx.shadowBlur = 0;
           } else if (assetsRef.current?.boss) {
             drawImageCircle(ctx, assetsRef.current.boss, e.x, e.y, e.size, e.hitFlash, BOSS_CIRCLE_SCALE, BOSS_IMAGE_SCALE, 'cover');
             // Draw boss name
-            ctx.fillStyle = '#FFF';
-            ctx.font = 'bold 20px Inter';
+            const pulse = 1 + Math.sin(state.frameCount / 15) * 0.15;
+            ctx.fillStyle = `hsl(${state.frameCount % 360}, 100%, 70%)`;
+            ctx.font = `bold ${20 * pulse}px Inter`;
             ctx.textAlign = 'center';
-            ctx.shadowBlur = 4;
+            ctx.shadowBlur = 8;
             ctx.shadowColor = '#000';
-            ctx.fillText(e.bossType || 'BOSS', e.x, e.y - e.size * BOSS_CIRCLE_SCALE - 20);
+            ctx.fillText(e.bossType || 'BOSS', e.x, e.y - e.size * BOSS_CIRCLE_SCALE - 25);
             ctx.shadowBlur = 0;
           } else {
             drawMonster(ctx, e.x, e.y, e.size, e.hp, e.maxHp, e.hitFlash, e.type, assetsRef.current || undefined);
@@ -3329,13 +3331,7 @@ export default function App() {
             onTouchStart={handleTouchStart}
           />
           
-          {activeBossName && (
-            <div className="absolute top-20 inset-x-0 text-center pointer-events-none">
-              <h2 className="text-4xl font-black text-red-500 animate-pulse drop-shadow-lg">
-                {activeBossName}
-              </h2>
-            </div>
-          )}
+          {/* Removed large boss name display */}
           
           {reactStateStatus === 'PLAYING' && (
             <div className="absolute bottom-4 inset-x-4 flex justify-end pointer-events-none">
