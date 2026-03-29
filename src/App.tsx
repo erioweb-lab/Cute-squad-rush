@@ -458,6 +458,7 @@ export default function App() {
   }, []);
   
   
+  const [activeBossName, setActiveBossName] = useState<string | null>(null);
   const [imageSize, setImageSize] = useState<'1K' | '2K' | '4K'>('1K');
   const [needsApiKey, setNeedsApiKey] = useState(false);
   const [selectedCharacters, setSelectedCharacters] = useState<string[]>(['cat']);
@@ -798,6 +799,7 @@ export default function App() {
       bossActive: false,
       bossDefeated: false,
       bossDefeatedTimer: 0,
+      activeBossName: null,
       gameCleared: false,
       creditsTimer: 0,
       stage: 1,
@@ -858,6 +860,8 @@ export default function App() {
         state.bossDefeatedTimer--;
         if (state.bossDefeatedTimer <= 0) {
           state.bossDefeated = false;
+          state.activeBossName = null;
+          setActiveBossName(null);
           // Advance to next stage
           if (state.stage < STAGES.length) {
             state.stage++;
@@ -933,6 +937,8 @@ export default function App() {
         state.bossActive = true;
         
         const bossData = currentStage.boss;
+        state.activeBossName = bossData.name;
+        setActiveBossName(bossData.name);
         
         // Use boss health from constants
         const bossHp = bossData.hp; 
@@ -2187,7 +2193,7 @@ export default function App() {
             playSound('powerup');
             if (item.type === 'FEVER') {
               vibrate([50, 30, 50]);
-              state.feverTime = 300 + state.squadSkills.feverDuration; // 5 seconds fever + bonus
+              state.feverTime = FEVER_DURATION_BASE + state.squadSkills.feverDuration; // 5 seconds fever + bonus
               playSound('fever');
               if (p.count < PLAYER_MAX_HP + state.squadSkills.maxHp) {
                  p.count++;
@@ -2220,41 +2226,41 @@ export default function App() {
                 createFloatingText(state, p.x, p.y, "MAX SHIELDS!", "#FF6B6B");
               }
             } else if (item.type === 'MAGNET') {
-              p.magnetTime = 600;
+              p.magnetTime = MAGNET_DURATION;
               createFloatingText(state, p.x, p.y, "MAGNET!", "#FF00FF");
             } else if (item.type === 'FREEZE') {
-              state.freezeTime = 200;
+              state.freezeTime = FREEZE_DURATION;
               createFloatingText(state, p.x, p.y, "FREEZE!", "#00FFFF");
             } else if (item.type === 'CRIT') {
-              p.critTimer = 600; // 10 seconds
+              p.critTimer = CRIT_DURATION; // 10 seconds
               createFloatingText(state, p.x, p.y, "CRITICAL HIT!", "#FFD700");
             } else if (item.type === 'FIRE') {
-              p.ammoTimers['FIRE'] = 600;
+              p.ammoTimers['FIRE'] = AMMO_DURATION;
               createFloatingText(state, p.x, p.y, "FIRE!", "#FF4500");
             } else if (item.type === 'POISON_AMMO') {
-              p.ammoTimers['POISON'] = 600;
+              p.ammoTimers['POISON'] = AMMO_DURATION;
               createFloatingText(state, p.x, p.y, "POISON AMMO!", "#22c55e");
             } else if (item.type === 'ICE_AMMO') {
-              p.ammoTimers['ICE'] = 600;
+              p.ammoTimers['ICE'] = AMMO_DURATION;
               createFloatingText(state, p.x, p.y, "ICE AMMO!", "#00FFFF");
             } else if (item.type === 'HOMING_AMMO') {
-              p.ammoTimers['HOMING'] = 600;
+              p.ammoTimers['HOMING'] = AMMO_DURATION;
               createFloatingText(state, p.x, p.y, "HOMING AMMO!", "#FF00FF");
             } else if (item.type === 'LASER_AMMO') {
-              p.ammoTimers['LASER'] = 600;
+              p.ammoTimers['LASER'] = AMMO_DURATION;
               createFloatingText(state, p.x, p.y, "LASER AMMO!", "#00FF00");
             } else if (item.type === 'ELECTRIC_AMMO') {
-              p.ammoTimers['ELECTRIC'] = 600;
+              p.ammoTimers['ELECTRIC'] = AMMO_DURATION;
               createFloatingText(state, p.x, p.y, "ELECTRIC AMMO!", "#FFFF00");
             } else if (item.type === 'COIN') {
               vibrate(10);
-              state.coins += 10;
-              createFloatingText(state, item.x, item.y, "+10 💰", "#FFD700");
+              state.coins += COIN_VALUE;
+              createFloatingText(state, item.x, item.y, `+${COIN_VALUE} 💰`, "#FFD700");
             } else if (item.type === 'HEART') {
               state.players.forEach(p => {
                 if (!p.isDead && p.count < PLAYER_MAX_HP + state.squadSkills.maxHp) {
-                  p.count = Math.min(PLAYER_MAX_HP + state.squadSkills.maxHp, p.count + 20);
-                  createFloatingText(state, p.x, p.y, "+20 HP", "#4ECDC4");
+                  p.count = Math.min(PLAYER_MAX_HP + state.squadSkills.maxHp, p.count + HEART_VALUE);
+                  createFloatingText(state, p.x, p.y, `+${HEART_VALUE} HP`, "#4ECDC4");
                 }
               });
             }
@@ -3299,6 +3305,14 @@ export default function App() {
             onPointerMove={handlePointerMove}
             onTouchStart={handleTouchStart}
           />
+          
+          {activeBossName && (
+            <div className="absolute top-20 inset-x-0 text-center pointer-events-none">
+              <h2 className="text-4xl font-black text-red-500 animate-pulse drop-shadow-lg">
+                {activeBossName}
+              </h2>
+            </div>
+          )}
           
           {reactStateStatus === 'PLAYING' && (
             <div className="absolute bottom-4 inset-x-4 flex justify-end pointer-events-none">

@@ -199,8 +199,8 @@ export const BOSS_MAX_REWARDS = 2;      // 보스 최대 보상 아이템 수
 export const BOSS_FIRING_CONFIG = {
   INFERNO_KING:   { bulletCount: 1.5, bulletSpeed: 1.5 },
   ICE_MONARCH:    { bulletCount: 3.0, bulletSpeed: 2.0 },
-  VORTEX_BRINGER: { bulletCount: 0.7, bulletSpeed: 1.2 },
-  THUNDER_DRAGON: { bulletCount: 1.1, bulletSpeed: 1.2 },
+  VORTEX_BRINGER: { bulletCount: 0.7, bulletSpeed: 1.0 },
+  THUNDER_DRAGON: { bulletCount: 1.1, bulletSpeed: 1.1 },
   TOXIC_CLOUD:    { bulletCount: 0.7, bulletSpeed: 1.0 },
   ACID_STALKER:   { bulletCount: 1.0, bulletSpeed: 1.0 },
   VOLT_SPIKER:    { bulletCount: 1.2, bulletSpeed: 1.1 },
@@ -227,6 +227,15 @@ export const BOSS_HEALTH_CONFIG = {
   ANCIENT_CORE:   15000 * BOSS_HP_MULTIPLIER,
   ULTIMATE_VOID:  30000 * BOSS_HP_MULTIPLIER,
 };
+
+// --- Item Constants ---
+export const FEVER_DURATION_BASE = 300;
+export const MAGNET_DURATION = 600;
+export const FREEZE_DURATION = 200;
+export const CRIT_DURATION = 600;
+export const AMMO_DURATION = 600;
+export const COIN_VALUE = 10;
+export const HEART_VALUE = 30;
 
 export const STAGE_BACKGROUNDS = [bg1, bg2, bg3, bg4, bg5, bg6, bg7, bg8, bg9, bg10, bg11, bg12, bg1];
 
@@ -606,6 +615,7 @@ export type GameState = {
   bossActive: boolean;
   bossDefeated: boolean;
   bossDefeatedTimer: number;
+  activeBossName: string | null;
   gameCleared: boolean;
   creditsTimer: number;
   stage: number;
