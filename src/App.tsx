@@ -2865,8 +2865,24 @@ export default function App() {
 
           if (bossImg) {
             drawImageCircle(ctx, bossImg, e.x, e.y, e.size, e.hitFlash, BOSS_CIRCLE_SCALE, BOSS_IMAGE_SCALE, 'cover');
+            // Draw boss name
+            ctx.fillStyle = '#FFF';
+            ctx.font = 'bold 20px Inter';
+            ctx.textAlign = 'center';
+            ctx.shadowBlur = 4;
+            ctx.shadowColor = '#000';
+            ctx.fillText(e.bossType || 'BOSS', e.x, e.y - e.size * BOSS_CIRCLE_SCALE - 20);
+            ctx.shadowBlur = 0;
           } else if (assetsRef.current?.boss) {
             drawImageCircle(ctx, assetsRef.current.boss, e.x, e.y, e.size, e.hitFlash, BOSS_CIRCLE_SCALE, BOSS_IMAGE_SCALE, 'cover');
+            // Draw boss name
+            ctx.fillStyle = '#FFF';
+            ctx.font = 'bold 20px Inter';
+            ctx.textAlign = 'center';
+            ctx.shadowBlur = 4;
+            ctx.shadowColor = '#000';
+            ctx.fillText(e.bossType || 'BOSS', e.x, e.y - e.size * BOSS_CIRCLE_SCALE - 20);
+            ctx.shadowBlur = 0;
           } else {
             drawMonster(ctx, e.x, e.y, e.size, e.hp, e.maxHp, e.hitFlash, e.type, assetsRef.current || undefined);
           }
@@ -3682,9 +3698,10 @@ export default function App() {
                   <Gamepad2 size={20} /> 조작 방법
                 </h3>
                 <ul className="text-sm text-zinc-300 space-y-2">
-                  <li><span className="font-bold text-white">이동</span>: <kbd className="bg-zinc-700 px-1 rounded">WASD</kbd> 또는 <kbd className="bg-zinc-700 px-1 rounded">방향키</kbd> (모바일: 드래그)</li>
-                  <li><span className="font-bold text-white">폭탄</span>: <kbd className="bg-zinc-700 px-1 rounded">B</kbd> 또는 <kbd className="bg-zinc-700 px-1 rounded">스페이스바</kbd> <span className="whitespace-nowrap">(모바일: <span className="text-red-400 font-bold">두 손가락 터치</span>)</span></li>
-                  <li><span className="font-bold text-white">일시정지</span>: <kbd className="bg-zinc-700 px-1 rounded">P</kbd> <span className="whitespace-nowrap">(모바일: <span className="text-blue-400 font-bold">두 번 터치</span>)</span></li>
+                  <li><span className="font-bold text-white">이동 (1P)</span>: <kbd className="bg-zinc-700 px-1 rounded">WASD</kbd></li>
+                  <li><span className="font-bold text-white">이동 (2P)</span>: <kbd className="bg-zinc-700 px-1 rounded">방향키</kbd></li>
+                  <li><span className="font-bold text-white">폭탄</span>: <kbd className="bg-zinc-700 px-1 rounded">B</kbd> (1P) / <kbd className="bg-zinc-700 px-1 rounded">스페이스바</kbd> (2P)</li>
+                  <li><span className="font-bold text-white">일시정지</span>: <kbd className="bg-zinc-700 px-1 rounded">P</kbd></li>
                   <li><kbd className="bg-zinc-700 px-1 rounded">M</kbd> : 도움말 켜기/끄기</li>
                   <li className="text-xs text-slate-400 pt-2 border-t border-white/5">* 모바일에서 피격 시 햅틱 반응(진동)이 제공됩니다.</li>
                   <li className="text-xs text-slate-400">* 보호막과 폭탄은 최대 3개까지 보유 가능합니다.</li>
