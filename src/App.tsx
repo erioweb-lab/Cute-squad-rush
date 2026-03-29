@@ -3380,29 +3380,6 @@ export default function App() {
                   ANIMAL RUSH
                 </h1>
 
-                <div className="mb-1 bg-white/5 backdrop-blur-md px-3 py-0.5 rounded-xl border border-white/10 flex flex-col items-center">
-                  <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Player Count</span>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        gameState.current.playerCount = 1;
-                        setSelectedCharacters([selectedCharacters[0] || 'cat']);
-                      }}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold ${gameState.current.playerCount === 1 ? 'bg-blue-500 text-white' : 'bg-slate-700 text-slate-300'}`}
-                    >
-                      1P
-                    </button>
-                    <button
-                      onClick={() => {
-                        gameState.current.playerCount = 2;
-                        setSelectedCharacters([selectedCharacters[0] || 'cat', selectedCharacters[1] || 'dog']);
-                      }}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold ${gameState.current.playerCount === 2 ? 'bg-blue-500 text-white' : 'bg-slate-700 text-slate-300'}`}
-                    >
-                      2P
-                    </button>
-                  </div>
-                </div>
                 {/* High Score Display */}
                 <div className="mb-1 bg-white/5 backdrop-blur-md px-3 py-0.5 rounded-xl border border-white/10 flex flex-col items-center">
                   <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Best Record</span>
@@ -3698,10 +3675,9 @@ export default function App() {
                   <Gamepad2 size={20} /> 조작 방법
                 </h3>
                 <ul className="text-sm text-zinc-300 space-y-2">
-                  <li><span className="font-bold text-white">이동 (1P)</span>: <kbd className="bg-zinc-700 px-1 rounded">WASD</kbd></li>
-                  <li><span className="font-bold text-white">이동 (2P)</span>: <kbd className="bg-zinc-700 px-1 rounded">방향키</kbd></li>
-                  <li><span className="font-bold text-white">폭탄</span>: <kbd className="bg-zinc-700 px-1 rounded">B</kbd> (1P) / <kbd className="bg-zinc-700 px-1 rounded">스페이스바</kbd> (2P)</li>
-                  <li><span className="font-bold text-white">일시정지</span>: <kbd className="bg-zinc-700 px-1 rounded">P</kbd></li>
+                  <li><span className="font-bold text-white">이동</span>: <kbd className="bg-zinc-700 px-1 rounded">WASD</kbd> 또는 <kbd className="bg-zinc-700 px-1 rounded">방향키</kbd> (모바일: 드래그)</li>
+                  <li><span className="font-bold text-white">폭탄</span>: <kbd className="bg-zinc-700 px-1 rounded">B</kbd> 또는 <kbd className="bg-zinc-700 px-1 rounded">스페이스바</kbd> (모바일: <span className="text-red-400 font-bold">두 손가락 터치</span>)</li>
+                  <li><span className="font-bold text-white">일시정지</span>: <kbd className="bg-zinc-700 px-1 rounded">P</kbd> (모바일: <span className="text-blue-400 font-bold">두 번 터치</span>)</li>
                   <li><kbd className="bg-zinc-700 px-1 rounded">M</kbd> : 도움말 켜기/끄기</li>
                   <li className="text-xs text-slate-400 pt-2 border-t border-white/5">* 모바일에서 피격 시 햅틱 반응(진동)이 제공됩니다.</li>
                   <li className="text-xs text-slate-400">* 보호막과 폭탄은 최대 3개까지 보유 가능합니다.</li>
