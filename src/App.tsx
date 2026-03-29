@@ -17,7 +17,7 @@ import {
   SKILL_DESC_COLOR, ENEMY_FIRE_DURATION, ENEMY_FIRE_TICK_RATE, ENEMY_FIRE_TICK_DAMAGE,
   ENEMY_POISON_DURATION, ENEMY_POISON_TICK_RATE, ENEMY_POISON_TICK_DAMAGE, ENEMY_ICE_DURATION,
   ENEMY_STUN_DURATION, ENEMY_BOMB_DAMAGE, ENEMY_SPEED, SCROLL_SPEED, SLIME_SIZE,
-  ITEM_CIRCLE_SCALE, ITEM_IMAGE_SCALE, BOSS_CIRCLE_SCALE, BOSS_IMAGE_SCALE,
+  ITEM_CIRCLE_SCALE, ITEM_IMAGE_SCALE, BOSS_CIRCLE_SCALE, BOSS_IMAGE_SCALE, ROCK_CRACKER_DAMAGE,
   BOSS_REWARD_PROBABILITY, BOSS_MAX_REWARDS, BOSS_FIRING_CONFIG, BOSS_HEALTH_CONFIG,
   FEVER_DURATION_BASE, MAGNET_DURATION, FREEZE_DURATION, CRIT_DURATION, AMMO_DURATION, COIN_VALUE, HEART_VALUE,
   STAGE_BACKGROUNDS, CAT_PLACEHOLDER, DOG_PLACEHOLDER, RABBIT_PLACEHOLDER, RAT_PLACEHOLDER,
@@ -2150,7 +2150,7 @@ export default function App() {
                 p.y += 10; // Extra push on hit (reduced)
               }
               else if (b.type === 'ROCK') {
-                damage = Math.round(5 * BOSS_DAMAGE_MULTIPLIER);
+                damage = Math.round(ROCK_CRACKER_DAMAGE * BOSS_DAMAGE_MULTIPLIER);
                 state.screenShake = 10;
               }
               
@@ -2866,9 +2866,13 @@ export default function App() {
           if (bossImg) {
             drawImageCircle(ctx, bossImg, e.x, e.y, e.size, e.hitFlash, BOSS_CIRCLE_SCALE, BOSS_IMAGE_SCALE, 'cover');
             // Draw boss name
-            const pulse = 1 + Math.sin(state.frameCount / 15) * 0.15;
-            ctx.fillStyle = `hsl(${state.frameCount % 360}, 100%, 70%)`;
-            ctx.font = `bold ${20 * pulse}px Inter`;
+            const hpPercent = e.hp / e.maxHp;
+            let nameColor = '#4ade80'; // Green
+            if (hpPercent <= 0.3) nameColor = '#f87171'; // Red
+            else if (hpPercent <= 0.7) nameColor = '#facc15'; // Yellow
+            
+            ctx.fillStyle = nameColor;
+            ctx.font = 'bold 20px Inter';
             ctx.textAlign = 'center';
             ctx.shadowBlur = 8;
             ctx.shadowColor = '#000';
@@ -2877,9 +2881,13 @@ export default function App() {
           } else if (assetsRef.current?.boss) {
             drawImageCircle(ctx, assetsRef.current.boss, e.x, e.y, e.size, e.hitFlash, BOSS_CIRCLE_SCALE, BOSS_IMAGE_SCALE, 'cover');
             // Draw boss name
-            const pulse = 1 + Math.sin(state.frameCount / 15) * 0.15;
-            ctx.fillStyle = `hsl(${state.frameCount % 360}, 100%, 70%)`;
-            ctx.font = `bold ${20 * pulse}px Inter`;
+            const hpPercent = e.hp / e.maxHp;
+            let nameColor = '#4ade80'; // Green
+            if (hpPercent <= 0.3) nameColor = '#f87171'; // Red
+            else if (hpPercent <= 0.7) nameColor = '#facc15'; // Yellow
+            
+            ctx.fillStyle = nameColor;
+            ctx.font = 'bold 20px Inter';
             ctx.textAlign = 'center';
             ctx.shadowBlur = 8;
             ctx.shadowColor = '#000';
