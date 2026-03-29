@@ -5,12 +5,13 @@ import {
   CANVAS_WIDTH, CANVAS_HEIGHT, CAT_SIZE, HITBOX_SCALE, PLAYER_CIRCLE_SCALE, PLAYER_IMAGE_SCALE, PLAYER_SPEED,
   FIRE_RATE, BULLET_SPEED, BULLET_SPAWN_OFFSET_Y, BULLET_MAX_SPREAD_RATIO, FIRING_CIRCLE_SCALE,
   PLAYER_MAX_HP, CHAR_UPGRADE_HP_1, CHAR_UPGRADE_HP_2, CHAR_UPGRADE_HP_3, CHAR_UPGRADE_HP_4,
-  BOSS_HP_MULTIPLIER, BOSS_BULLET_COUNT_MULTIPLIER, BOSS_MINION_SPAWN_MULTIPLIER, BULLET_POWER_MULTIPLIER, FEVER_SPEED_MULTIPLIER, FEVER_COMBO_THRESHOLD,
+  BOSS_HP_MULTIPLIER, BOSS_BULLET_COUNT_MULTIPLIER, BOSS_AOE_CONFIG, BOSS_MINION_SPAWN_MULTIPLIER, BULLET_POWER_MULTIPLIER, FEVER_SPEED_MULTIPLIER, FEVER_COMBO_THRESHOLD,
   LEVEL_UP_ATTACK_SPEED_INCREASE, LEVEL_UP_BULLET_SIZE_INCREASE, FEVER_DAMAGE_MULTIPLIER,
   FEVER_ATTACK_SPEED_MULTIPLIER, BOSS_DAMAGE_MULTIPLIER, BULLET_COUNT_HP_THRESHOLD, MAX_DRONES,
-  MAX_SHIELDS, MAX_BOMBS,
-  BULLET_DAMAGE_HP_SCALING, CHAR_FIRE_DURATION, CHAR_FIRE_TICK_RATE, CHAR_FIRE_TICK_DAMAGE,
+  MAX_SHIELDS, MAX_BOMBS, BASE_PLAYER_DAMAGE,
+  MAX_BULLETS, MAX_PARTICLES, MAX_ENEMIES, CHAR_FIRE_DURATION, CHAR_FIRE_TICK_RATE, CHAR_FIRE_TICK_DAMAGE,
   DRONE_BASE_FIRE_RATE, DRONE_ATTACK_SPEED_MULTIPLIER, PLAYER_ATTACK_SPEED_MULTIPLIER, PLAYER_DAMAGE_MULTIPLIER, PLAYER_MIN_DAMAGE_HP_EQUIVALENT,
+  CHARACTER_GROWTH, RAT_CRIT_DAMAGE_BONUS,
   PIERCE_BASE_PROBABILITY, PIERCE_PROBABILITY_PER_LEVEL,
   CHAR_POISON_DURATION, CHAR_POISON_TICK_RATE, CHAR_POISON_TICK_DAMAGE, CHAR_ICE_DURATION,
   SKILL_MODAL_BG, SKILL_BUTTON_BG, SKILL_BUTTON_BORDER, SKILL_BUTTON_HOVER, SKILL_TITLE_COLOR,
@@ -23,7 +24,7 @@ import {
   STAGE_BACKGROUNDS, CAT_PLACEHOLDER, DOG_PLACEHOLDER, RABBIT_PLACEHOLDER, RAT_PLACEHOLDER,
   bossGalleryPngSrc, getPlayerStage, ANIMALS, BOSSES, ITEMS, STAGES,
   SKILL_SELECTION_COUNT_DEFAULT, SKILL_RARITY_WEIGHTS, getStageSkillCount, SKILL_RARITY_COLORS,
-  AVAILABLE_SKILLS, GATE_HEALTH_BASE, GATE_HEALTH_STAGE_MULTIPLIER, DIV_GATE_WIDTH_RATIO, DIV_GATE_REDUCTION_RATIO, GATE_SPAWN_INTERVAL, GIANT_BULLET_BASE_SIZE, GIANT_BULLET_UPGRADE_SCALING, HOMING_BULLET_BASE_SIZE, getHitsNeeded, UPGRADE_CONFIG,
+  AVAILABLE_SKILLS, GATE_HEALTH_BASE, GATE_HEALTH_STAGE_MULTIPLIER, DIV_GATE_WIDTH_RATIO, DIV_GATE_REDUCTION_RATIO, GATE_SPAWN_INTERVAL, GIANT_BULLET_BASE_SIZE, GIANT_BULLET_UPGRADE_SCALING, HOMING_BULLET_BASE_SIZE, getHitsNeeded, UPGRADE_CONFIG, SKILL_PROPS,
   Stats, ACHIEVEMENTS, CHAR_LASER_PIERCE_PROBABILITY, CHAR_ELECTRIC_STUN_DURATION,
   getFormationOffsets, drawImageCircle, drawCat, drawMonster, ErrorBoundary,
   initAudio, playBGM, playSound, INITIAL_GAME_STATE, createParticles, createFloatingText,
@@ -95,7 +96,7 @@ export default function App() {
       state.enemies.forEach(e => {
         const dist = Math.hypot(e.x - p.x, e.y - p.y);
         if (dist < explosionRange) {
-          const damage = 500 * (1 + (upgradesRef.current.damageUp || 0) * 0.1);
+          const damage = 500 * (1 + (upgradesRef.current.damageUp || 0) * (SKILL_PROPS.damageUp.damage / 100));
           e.hp -= damage;
           e.hitFlash = 10;
         }
@@ -829,7 +830,7 @@ export default function App() {
         if (p.isDead || p.playerFreezeTimer > 0) return;
         
         // Base speed
-        let currentSpeed = speed * (1 + state.squadSkills.speedySquad * 0.05);
+        let currentSpeed = speed * (1 + state.squadSkills.speedySquad * (SKILL_PROPS.speedySquad.speed / 100));
         // Rabbit passive: +10% speed removed
         
         // Slow effect from Earthquake or other sources
@@ -853,6 +854,12 @@ export default function App() {
         p.x = Math.max(20, Math.min(CANVAS_WIDTH - 20, p.x + dx));
         p.y = Math.max(20, Math.min(CANVAS_HEIGHT - 20, p.y + dy));
       });
+
+      // Safety limits to prevent freezing/lag
+      if (state.bullets.length > MAX_BULLETS) state.bullets.splice(0, state.bullets.length - MAX_BULLETS);
+      if (state.particles.length > MAX_PARTICLES) state.particles.splice(0, state.particles.length - MAX_PARTICLES);
+      if (state.enemyBullets.length > 600) state.enemyBullets.splice(0, state.enemyBullets.length - 600);
+      if (state.enemies.length > MAX_ENEMIES) state.enemies.splice(0, state.enemies.length - MAX_ENEMIES);
 
       state.frameCount++;
 
@@ -1114,57 +1121,60 @@ export default function App() {
       });
       state.bullets = state.bullets.filter(b => b.y > -50 && b.x > -50 && b.x < CANVAS_WIDTH + 50);
 
-      state.enemyBullets.forEach(b => { 
-        if (b.type === 'POISON' && b.vx < 1 && b.vy < 1) { // Homing poison logic
-          const alivePlayers = state.players.filter(p => !p.isDead);
-          if (alivePlayers.length > 0) {
-            const target = alivePlayers[0];
-            const dx = target.x - b.x;
-            const dy = target.y - b.y;
-            const dist = Math.hypot(dx, dy) || 1;
-            b.vx += (dx / dist) * 0.05;
-            b.vy += (dy / dist) * 0.05;
-            
-            // Limit speed
-            const speed = Math.hypot(b.vx, b.vy);
-            if (speed > 3) {
-              b.vx = (b.vx / speed) * 3;
-              b.vy = (b.vy / speed) * 3;
+      if (state.freezeTime <= 0) {
+        state.enemyBullets.forEach(b => { 
+          if (b.type === 'POISON' && b.vx < 1 && b.vy < 1) { // Homing poison logic
+            const alivePlayers = state.players.filter(p => !p.isDead);
+            if (alivePlayers.length > 0) {
+              const target = alivePlayers[0];
+              const dx = target.x - b.x;
+              const dy = target.y - b.y;
+              const dist = Math.hypot(dx, dy) || 1;
+              b.vx += (dx / dist) * 0.05;
+              b.vy += (dy / dist) * 0.05;
+              
+              // Limit speed
+              const speed = Math.hypot(b.vx, b.vy);
+              if (speed > 3) {
+                b.vx = (b.vx / speed) * 3;
+                b.vy = (b.vy / speed) * 3;
+              }
             }
           }
-        }
 
-        b.x += b.vx; 
-        b.y += b.vy; 
-        if (b.type === 'POISON') {
-          b.x += Math.sin(state.frameCount * 0.1 + b.id) * 2;
-        }
-        if (b.type === 'STORM') {
-          state.players.forEach(p => {
-            if (p.isDead) return;
-            const dx = b.x - p.x;
-            const dy = b.y - p.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            if (dist < 200) {
-              p.x += dx * 0.005;
-              p.y += dy * 0.005;
-            }
-          });
-        }
-        if (b.type === 'WATERFALL') {
-          state.players.forEach(p => {
-            if (p.isDead) return;
-            const dx = b.x - p.x;
-            const dist = Math.abs(dx);
-            if (dist < 40) {
-              p.y += 0.5; // Push down (reduced strength)
-            }
-          });
-        }
-      });
-      state.enemyBullets = state.enemyBullets.filter(b => b.y < CANVAS_HEIGHT + 50);
+          b.x += b.vx * (b.type === 'POISON' ? 0.5 : 1); 
+          b.y += b.vy * (b.type === 'POISON' ? 0.5 : 1); 
+          if (b.type === 'POISON') {
+            b.x += Math.sin(state.frameCount * 0.1 + b.id) * 2;
+          }
+          if (b.type === 'STORM') {
+            state.players.forEach(p => {
+              if (p.isDead) return;
+              const dx = b.x - p.x;
+              const dy = b.y - p.y;
+              const dist = Math.sqrt(dx*dx + dy*dy);
+              if (dist < 200) {
+                p.x += dx * 0.005;
+                p.y += dy * 0.005;
+              }
+            });
+          }
+          if (b.type === 'WATERFALL') {
+            state.players.forEach(p => {
+              if (p.isDead) return;
+              const dx = b.x - p.x;
+              const dist = Math.abs(dx);
+              if (dist < 40) {
+                p.y += 0.5; // Push down (reduced strength)
+              }
+            });
+          }
+        });
+        state.enemyBullets = state.enemyBullets.filter(b => b.y < CANVAS_HEIGHT + 50);
+      }
 
       state.enemies.forEach(e => {
+        if (!e) return;
         if (e.hitFlash && e.hitFlash > 0) e.hitFlash--;
         
         if (e.fireTimer && e.fireTimer > 0) {
@@ -1190,12 +1200,12 @@ export default function App() {
           state.combo++;
           state.comboTimer = 120; // 2 seconds
           if (state.combo > 0 && state.combo % FEVER_COMBO_THRESHOLD === 0) {
-             state.feverTime = 300 + state.squadSkills.feverDuration;
+             state.feverTime = 300 + (state.squadSkills.feverDuration * SKILL_PROPS.feverDuration.duration * 60);
              createFloatingText(state, e.x, e.y - 40, "FEVER MODE!", "#FFFF00");
              playSound('fever');
              createParticles(state, e.x, e.y, '#FFFF00', 30);
           }
-          const scoreGained = Math.ceil(Math.ceil(e.maxHp) * state.combo * (1 + state.squadSkills.scoreMult * 0.5));
+          const scoreGained = Math.ceil(Math.ceil(e.maxHp) * state.combo * (1 + state.squadSkills.scoreMult * (SKILL_PROPS.scoreMult.score / 100)));
           state.score += scoreGained;
           const coinsGained = e.type === 'BOSS' ? 10 : 0;
           if (coinsGained > 0) {
@@ -1209,7 +1219,7 @@ export default function App() {
             state.bossActive = false;
             state.bossDefeated = true;
             state.bossDefeatedTimer = 120; // 2 seconds destruction effect
-            state.score += (1000 * state.combo) * (1 + state.squadSkills.scoreMult * 0.5);
+            state.score += (1000 * state.combo) * (1 + state.squadSkills.scoreMult * (SKILL_PROPS.scoreMult.score / 100));
             state.screenShake = 30; // Stronger shake
             createFloatingText(state, e.x, e.y - 30, "BOSS DEFEATED!", "#FFD700");
             createParticles(state, e.x, e.y, '#FF4500', 100); // Massive explosion
@@ -1222,7 +1232,7 @@ export default function App() {
             state.gates = [];
             state.items = [];
 
-            if (state.stage === 13) {
+            if (state.stage === 12) {
               state.gameCleared = true;
               state.creditsTimer = 1800; // 30 seconds of credits
               updateStatsAndSave(state.score, state.coins, state.kills, state.stage, state);
@@ -1270,7 +1280,9 @@ export default function App() {
             }
 
             const attackRateMult = isPhase3 ? (1 / 1.4) : (isPhase2 ? (1 / 1.2) : 1.0);
-            const attackRate = Math.max(isPhase3 ? 40 : (isPhase2 ? 60 : 120), (400 - stage * 40) * attackRateMult); 
+            const hpRatio = e.bossType ? Math.max(0, e.hp / e.maxHp) : 1.0;
+            const hpMult = e.bossType ? (1.0 - (1.0 - hpRatio) * 0.33) : 1.0;
+            const attackRate = Math.max(isPhase3 ? 40 : (isPhase2 ? 60 : 120), (400 - stage * 40) * attackRateMult * hpMult);
             
             // Boss fight: spawn normal enemies
             if (state.frameCount % Math.floor(240 * attackRateMult) === 0) {
@@ -1475,12 +1487,12 @@ export default function App() {
                 if (patternType % 2 === 0) {
                   const waterfallCount = Math.ceil(15 * 0.8 * bulletCountMult);
                   for (let i = 0; i < waterfallCount; i++) {
-                    state.enemyBullets.push({ id: Math.random(), x: Math.random() * CANVAS_WIDTH, y: -20, vx: 0, vy: (5 + Math.random() * 5) * bulletSpeedMult, type: 'WATERFALL' });
+                    state.enemyBullets.push({ id: Math.random(), x: Math.random() * CANVAS_WIDTH, y: -20, vx: 0, vy: (BOSS_AOE_CONFIG.WATERFALL.vyBase + Math.random() * BOSS_AOE_CONFIG.WATERFALL.vyRandom) * bulletSpeedMult, type: 'WATERFALL' });
                   }
                 } else { // Tidal Wave
                   const waveCount = Math.ceil(20 * 0.8 * bulletCountMult);
                   for(let i=0; i<waveCount; i++) {
-                    state.enemyBullets.push({ id: Math.random(), x: (CANVAS_WIDTH / waveCount) * i, y: -50, vx: 0, vy: baseSpeed * 1.2, type: 'WATERFALL' });
+                    state.enemyBullets.push({ id: Math.random(), x: (CANVAS_WIDTH / waveCount) * i, y: -50, vx: 0, vy: BOSS_AOE_CONFIG.WATERFALL.vyBase * 1.2 * bulletSpeedMult, type: 'WATERFALL' });
                   }
                 }
               } else if (element === 'WIND') {
@@ -1497,14 +1509,14 @@ export default function App() {
                 createFloatingText(state, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "THUNDERSTORM!", "#FFFF00", true);
                 const thunderCount = Math.ceil((isPhase2 ? 10 : 5) * bulletCountMult);
                 for (let i = 0; i < thunderCount; i++) {
-                  state.enemyBullets.push({ id: Math.random(), x: Math.random() * CANVAS_WIDTH, y: -50, vx: 0, vy: 12 * bulletSpeedMult, type: 'THUNDER' });
+                  state.enemyBullets.push({ id: Math.random(), x: Math.random() * CANVAS_WIDTH, y: -50, vx: 0, vy: BOSS_AOE_CONFIG.THUNDER.vy * bulletSpeedMult, type: 'THUNDER' });
                 }
               } else if (element === 'EARTHQUAKE') {
                 createFloatingText(state, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "EARTHQUAKE!", "#8B4513", true);
                 state.screenShake = isPhase2 ? 30 : 20;
                 const rockCount = Math.ceil((isPhase2 ? 15 : 8) * bulletCountMult);
                 for (let i = 0; i < rockCount; i++) {
-                  state.enemyBullets.push({ id: Math.random(), x: Math.random() * CANVAS_WIDTH, y: -20, vx: (Math.random() - 0.5) * 4 * bulletSpeedMult, vy: (4 + Math.random() * 6) * bulletSpeedMult, type: 'ROCK' });
+                  state.enemyBullets.push({ id: Math.random(), x: Math.random() * CANVAS_WIDTH, y: -20, vx: (Math.random() - 0.5) * BOSS_AOE_CONFIG.ROCK.vxRange * bulletSpeedMult, vy: (BOSS_AOE_CONFIG.ROCK.vyBase + Math.random() * BOSS_AOE_CONFIG.ROCK.vyRandom) * bulletSpeedMult, type: 'ROCK' });
                 }
               } else if (element === 'LASER') {
                 createFloatingText(state, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "LASER BEAM!", "#FF00FF", true);
@@ -1512,7 +1524,7 @@ export default function App() {
                   const laserCount = Math.ceil(3 * bulletCountMult);
                   for(let i=0; i<laserCount; i++) {
                     const vx = (i - (laserCount-1)/2) * 0.5 * bulletSpeedMult;
-                    state.enemyBullets.push({ id: Math.random(), x: e.x + (i - (laserCount-1)/2) * 20, y: e.y + e.size, vx: vx, vy: 15 * bulletSpeedMult, type: 'LASER' });
+                    state.enemyBullets.push({ id: Math.random(), x: e.x + (i - (laserCount-1)/2) * 20, y: e.y + e.size, vx: vx, vy: BOSS_AOE_CONFIG.LASER.vy * bulletSpeedMult, type: 'LASER' });
                   }
                 } else { // Rotating Lasers
                   const laserCount = Math.ceil((isPhase2 ? 8 : 4) * bulletCountMult);
@@ -1525,7 +1537,7 @@ export default function App() {
                 createFloatingText(state, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, "STORM VORTEX!", "#90A4AE", true);
                 const stormCount = Math.ceil((isPhase2 ? 3 : 1) * bulletCountMult);
                 for(let i=0; i<stormCount; i++) {
-                  state.enemyBullets.push({ id: Math.random(), x: e.x + (i - (stormCount-1)/2) * 100, y: e.y + e.size, vx: 0, vy: 2 * bulletSpeedMult, type: 'STORM' });
+                  state.enemyBullets.push({ id: Math.random(), x: e.x + (i - (stormCount-1)/2) * BOSS_AOE_CONFIG.STORM.spacing, y: e.y + e.size, vx: 0, vy: BOSS_AOE_CONFIG.STORM.vy * bulletSpeedMult, type: 'STORM' });
                 }
               } else {
                 if (patternType === 0 || patternType === 3) {
@@ -1598,15 +1610,15 @@ export default function App() {
       state.players.forEach(p => {
         if (p.isDead) return;
         
-        let magnetRange = state.squadSkills.magnetRange;
-        let magnetSpeed = state.squadSkills.magnetRange > 0 ? 5 : 0;
+        let baseMagnetRange = p.character === 'rat' ? 150 : 50; // Default base range is 50, rat is 150
+        let magnetRange = baseMagnetRange * (1 + (state.squadSkills.magnetRange * (SKILL_PROPS.magnetRange.range / 100)));
+        let magnetSpeed = 3 + (state.squadSkills.magnetRange > 0 ? 2 : 0);
         
         if (p.magnetTime > 0) {
            p.magnetTime--;
            magnetRange = Math.max(magnetRange, 600);
            magnetSpeed = Math.max(magnetSpeed, 12);
         } else if (p.character === 'rat') {
-           magnetRange = Math.max(magnetRange, 150);
            magnetSpeed = Math.max(magnetSpeed, 5);
         }
         
@@ -1614,8 +1626,9 @@ export default function App() {
            state.items.forEach(item => {
               const dx = p.x - item.x;
               const dy = p.y - item.y;
-              const dist = Math.hypot(dx, dy);
-              if (dist < magnetRange) {
+              const distSq = dx * dx + dy * dy;
+              if (distSq < magnetRange * magnetRange) {
+                 const dist = Math.sqrt(distSq);
                  item.x += (dx / dist) * magnetSpeed;
                  item.y += (dy / dist) * magnetSpeed;
               }
@@ -1648,33 +1661,41 @@ export default function App() {
       // 5. Fire Bullets
       if (state.feverTime > 0) state.feverTime--;
       
-      state.players.forEach(p => {
-        if (p.isDead || p.count <= 0 || p.playerFreezeTimer > 0) return;
-        let calculatedFireRate = Math.max(5, FIRE_RATE - Math.floor(p.count / 20));
-        if (p.character === 'cat') calculatedFireRate = Math.max(3, Math.floor(calculatedFireRate * 0.9)); // Cat passive: +10% attack speed
-        calculatedFireRate = Math.max(4, Math.floor(calculatedFireRate * Math.pow(1 - LEVEL_UP_ATTACK_SPEED_INCREASE, (upgradesRef.current.attackSpeed || 0) + state.squadSkills.attackSpeed + state.squadSkills.ghostBullets))); // 5% faster per level
+        state.players.forEach(p => {
+          if (p.isDead || p.count <= 0 || p.playerFreezeTimer > 0) return;
+          const growth = CHARACTER_GROWTH[p.character] || CHARACTER_GROWTH.cat;
+          const playerStage = getPlayerStage(p.count);
+          const levelStats = growth.upgradeStats[playerStage];
+          
+          let calculatedFireRate = FIRE_RATE;
+          // Apply base APS bonus and stage APS bonus
+          const apsBonus = growth.baseApsBonus + levelStats.aps;
+          calculatedFireRate = Math.max(3, Math.floor(calculatedFireRate * (1 - apsBonus)));
+          
+          calculatedFireRate = Math.max(4, Math.floor(calculatedFireRate * Math.pow(1 - (SKILL_PROPS.attackSpeed.speed / 100), (upgradesRef.current.attackSpeed || 0) + state.squadSkills.attackSpeed + state.squadSkills.ghostBullets))); // Apply attack speed percentage
         calculatedFireRate = Math.max(2, Math.floor(calculatedFireRate / PLAYER_ATTACK_SPEED_MULTIPLIER)); // Apply global multiplier
         const currentFireRate = state.feverTime > 0 ? Math.max(2, Math.floor(calculatedFireRate / FEVER_ATTACK_SPEED_MULTIPLIER)) : calculatedFireRate;
         
         if (state.frameCount % currentFireRate === 0) {
           playSound('shoot');
-          // Stage logic based on user request:
+          const growth = CHARACTER_GROWTH[p.character] || CHARACTER_GROWTH.cat;
           const playerStage = getPlayerStage(p.count);
+          const levelStats = growth.upgradeStats[playerStage];
 
           const scale = 1 + playerStage * 0.1; 
           const currentCatSize = CAT_SIZE * scale;
 
           // Bullet count increases with count, but they come from the single character
           const bulletCount = Math.max(1, Math.min(Math.floor(p.count / BULLET_COUNT_HP_THRESHOLD) + 1, 12)) + state.squadSkills.multiShot + (upgradesRef.current.multiShot || 0);
-          const effectiveHpForDamage = Math.max(PLAYER_MIN_DAMAGE_HP_EQUIVALENT, p.count);
-          const damageMultiplier = Math.max(1, (effectiveHpForDamage / bulletCount) * BULLET_DAMAGE_HP_SCALING) * (1 + (upgradesRef.current.damageUp || 0) * 0.05) * Math.pow(1.2, state.squadSkills.damageUp) * PLAYER_DAMAGE_MULTIPLIER;
-          const baseCritChance = (state.squadSkills.critChance + (upgradesRef.current.critChance || 0) + (getPlayerStage(p.count) === 4 ? 5 : 0)) / 100;
+          const damageMultiplier = (1 + (upgradesRef.current.damageUp || 0) * (SKILL_PROPS.damageUp.damage / 100)) * Math.pow(1 + (SKILL_PROPS.damageUp.damage / 100), state.squadSkills.damageUp) * PLAYER_DAMAGE_MULTIPLIER * (1 + growth.baseDamageBonus);
+          const baseDamage = BASE_PLAYER_DAMAGE + levelStats.damage;
+          const baseCritChance = ((state.squadSkills.critChance + (upgradesRef.current.critChance || 0)) * SKILL_PROPS.critChance.chance + levelStats.critChance + growth.baseCritBonus) / 100;
           const isCritItemActive = p.critTimer > 0;
           const totalCritChance = isCritItemActive ? 0.5 + baseCritChance : baseCritChance;
           
           const isCrit = Math.random() < totalCritChance;
-          let critMultiplier = isCrit ? 2 : 1;
-          if (isCrit && p.character === 'rat') critMultiplier *= 1.05; // Mouse(Rat) passive: +5% critical damage
+          let critMultiplier = isCrit ? (2 + levelStats.critDamage) : 1;
+          if (isCrit && p.character === 'rat') critMultiplier *= (1 + RAT_CRIT_DAMAGE_BONUS); // Mouse(Rat) passive
 
           // Spread bullets in a circular arc
           const maxSpreadWidth = CANVAS_WIDTH * BULLET_MAX_SPREAD_RATIO;
@@ -1699,13 +1720,15 @@ export default function App() {
               id: Math.random(),
               x: finalX,
               y: p.y - circleRadius + offsetY + BULLET_SPAWN_OFFSET_Y,
-              damage: (state.feverTime > 0 ? FEVER_DAMAGE_MULTIPLIER : 1) * damageMultiplier * critMultiplier * 1.5 * BULLET_POWER_MULTIPLIER * (p.character === 'dog' ? 1.1 : 1),
+              damage: (state.feverTime > 0 ? FEVER_DAMAGE_MULTIPLIER : 1) * damageMultiplier * critMultiplier * baseDamage * BULLET_POWER_MULTIPLIER,
               types: Object.keys(p.ammoTimers).length > 0 ? Object.keys(p.ammoTimers) : ['NORMAL'],
               isCrit: isCrit,
               rabbitPierce: p.character === 'rabbit',
               pierceCount: state.squadSkills.pierce + state.squadSkills.ghostBullets + (upgradesRef.current.pierce || 0),
+              playerStage: playerStage,
+              character: p.character,
               hitEnemies: [],
-              size: GIANT_BULLET_BASE_SIZE * (1 + state.squadSkills.bulletSize * LEVEL_UP_BULLET_SIZE_INCREASE + (upgradesRef.current.bulletSize || 0) * GIANT_BULLET_UPGRADE_SCALING)
+              size: GIANT_BULLET_BASE_SIZE * (1 + state.squadSkills.bulletSize * (SKILL_PROPS.bulletSize.size / 100) + (upgradesRef.current.bulletSize || 0) * GIANT_BULLET_UPGRADE_SCALING)
             });
           }
         }
@@ -1714,6 +1737,10 @@ export default function App() {
       // 5.5 Update and Fire Drones
       state.players.forEach(p => {
         if (p.isDead) return;
+        const growth = CHARACTER_GROWTH[p.character] || CHARACTER_GROWTH.cat;
+        const playerStage = getPlayerStage(p.count);
+        const levelStats = growth.upgradeStats[playerStage];
+        const baseDamage = BASE_PLAYER_DAMAGE + levelStats.damage;
         state.drones.forEach((d, index) => {
           const targetAngle = (state.frameCount * 0.05) + (index * (Math.PI * 2 / Math.max(1, state.drones.length)));
           d.angle = targetAngle;
@@ -1725,14 +1752,16 @@ export default function App() {
             state.bullets.push({ 
               x: droneX, 
               y: droneY, 
-              damage: 2 * (1 + (upgradesRef.current.damageUp || 0) * 0.05) * Math.pow(1.2, state.squadSkills.damageUp) * (p.critTimer > 0 ? 2 : 1) * BULLET_POWER_MULTIPLIER * (p.character === 'dog' ? 1.1 : 1),
+              damage: baseDamage * (1 + (upgradesRef.current.damageUp || 0) * (SKILL_PROPS.damageUp.damage / 100)) * Math.pow(1 + (SKILL_PROPS.damageUp.damage / 100), state.squadSkills.damageUp) * (p.critTimer > 0 ? 2 : 1) * BULLET_POWER_MULTIPLIER * (1 + growth.baseDamageBonus),
               id: Math.random(),
               types: Object.keys(p.ammoTimers).length > 0 ? Object.keys(p.ammoTimers) : ['NORMAL'],
               isCrit: p.critTimer > 0,
               rabbitPierce: p.character === 'rabbit',
               pierceCount: state.squadSkills.pierce + state.squadSkills.ghostBullets + (upgradesRef.current.pierce || 0),
+              playerStage: playerStage,
+              character: p.character,
               hitEnemies: [],
-              size: HOMING_BULLET_BASE_SIZE * (1 + state.squadSkills.bulletSize * LEVEL_UP_BULLET_SIZE_INCREASE + (upgradesRef.current.bulletSize || 0) * 0.1)
+              size: HOMING_BULLET_BASE_SIZE * (1 + state.squadSkills.bulletSize * (SKILL_PROPS.bulletSize.size / 100) + (upgradesRef.current.bulletSize || 0) * 0.1)
             });
           }
         });
@@ -1757,10 +1786,13 @@ export default function App() {
             if (!b.hitGates) b.hitGates = [];
             b.hitGates.push(g.id);
 
-            let pierceProb = b.pierceCount > 0 ? PIERCE_BASE_PROBABILITY + (b.pierceCount - 1) * PIERCE_PROBABILITY_PER_LEVEL : (b.rabbitPierce ? 0.1 : 0);
+            const growth = CHARACTER_GROWTH[b.character || 'cat'] || CHARACTER_GROWTH.cat;
+            const playerStage = b.playerStage || 0;
+            const levelStats = growth.upgradeStats[playerStage];
+            let pierceProb = (b.pierceCount * PIERCE_PROBABILITY_PER_LEVEL) + growth.basePierceBonus + levelStats.pierce;
             if (b.types.includes('LASER')) pierceProb += CHAR_LASER_PIERCE_PROBABILITY;
             const doesPierce = Math.random() < (b.rabbitPierce && b.pierceCount > 0 ? pierceProb + 0.1 : pierceProb);
-
+            
             if (!doesPierce) {
               state.bullets.splice(i, 1);
               bulletDestroyed = true;
@@ -1821,12 +1853,16 @@ export default function App() {
 
         if (bulletDestroyed) continue;
 
-        for (let j = state.enemies.length - 1; j >= 0; j--) {
+          for (let j = state.enemies.length - 1; j >= 0; j--) {
           const e = state.enemies[j];
-          if (b.hitEnemies.includes(e.id)) continue;
+          if (!e || b.hitEnemies.includes(e.id)) continue;
           
-          const dist = Math.hypot(b.x - e.x, b.y - e.y);
-          if (dist < e.size + b.size) {
+          const dx = b.x - e.x;
+          const dy = b.y - e.y;
+          const distSq = dx * dx + dy * dy;
+          const radiusSum = e.size + b.size;
+          
+          if (distSq < radiusSum * radiusSum) {
             let finalDamage = b.damage;
             let isWeakness = false;
 
@@ -1876,16 +1912,22 @@ export default function App() {
             b.hitEnemies.push(e.id);
             
             // Explosive Bullets
-            if (state.squadSkills.explosiveBullets > 0 && Math.random() < 0.05 * state.squadSkills.explosiveBullets) {
+            if (state.squadSkills.explosiveBullets > 0 && Math.random() < (SKILL_PROPS.explosiveBullets.chance / 100) * state.squadSkills.explosiveBullets) {
               createParticles(state, e.x, e.y, '#FF4500', 20);
               state.enemies.forEach(enemy => {
-                if (Math.hypot(enemy.x - e.x, enemy.y - e.y) < 100) {
+                const edx = enemy.x - e.x;
+                const edy = enemy.y - e.y;
+                const edistSq = edx * edx + edy * edy;
+                if (edistSq < 10000) { // 100^2
                   enemy.hp -= b.damage * 0.5;
                 }
               });
             }
 
-            let pierceProb = b.pierceCount > 0 ? PIERCE_BASE_PROBABILITY + (b.pierceCount - 1) * PIERCE_PROBABILITY_PER_LEVEL : (b.rabbitPierce ? 0.1 : 0);
+            const growth = CHARACTER_GROWTH[b.character || 'cat'] || CHARACTER_GROWTH.cat;
+            const playerStage = b.playerStage || 0;
+            const levelStats = growth.upgradeStats[playerStage];
+            let pierceProb = (b.pierceCount * PIERCE_PROBABILITY_PER_LEVEL) + growth.basePierceBonus + levelStats.pierce;
             if (b.types.includes('LASER')) pierceProb += CHAR_LASER_PIERCE_PROBABILITY;
             const doesPierce = Math.random() < (b.rabbitPierce && b.pierceCount > 0 ? pierceProb + 0.1 : pierceProb);
 
@@ -1929,7 +1971,11 @@ export default function App() {
                     const scale = 1 + playerStage * 0.1;
                     const currentCatSize = CAT_SIZE * scale;
                     const playerRadius = currentCatSize * HITBOX_SCALE; // Hitbox set to HITBOX_SCALE of visual size
-                    if (Math.hypot(p.x - e.x, p.y - e.y) < playerRadius + 80) {
+                    const pdx = p.x - e.x;
+                    const pdy = p.y - e.y;
+                    const pdistSq = pdx * pdx + pdy * pdy;
+                    const combinedRadius = playerRadius + 80;
+                    if (pdistSq < combinedRadius * combinedRadius) {
                       if (p.shield > 0) {
                          p.shield--;
                       } else {
@@ -1955,7 +2001,7 @@ export default function App() {
                 state.bossActive = false;
                 state.bossDefeated = true;
                 state.bossDefeatedTimer = 120; // 2 seconds destruction effect
-                state.score += (1000 * state.combo) * (1 + state.squadSkills.scoreMult * 0.5);
+                state.score += (1000 * state.combo) * (1 + state.squadSkills.scoreMult * (SKILL_PROPS.scoreMult.score / 100));
                 state.screenShake = 30; // Stronger shake
                 createFloatingText(state, e.x, e.y - 30, "BOSS DEFEATED!", "#FFD700");
                 createParticles(state, e.x, e.y, '#FF4500', 100); // Massive explosion
@@ -1967,6 +2013,7 @@ export default function App() {
                 state.enemies = state.enemies.filter(enemy => enemy.id === e.id);
                 state.enemyBullets = [];
                 state.spawnQueue = [];
+                break; // Stop processing other enemies for this bullet since they are cleared
                 
                 // Boss drops items based on constants
                 const itemTypes: Array<'FEVER' | 'BOMB' | 'DRONE' | 'SHIELD' | 'MAGNET' | 'FREEZE' | 'CRIT' | 'FIRE' | 'POISON_AMMO' | 'ICE_AMMO' | 'HOMING_AMMO' | 'COIN' | 'HEART'> = 
@@ -2074,7 +2121,12 @@ export default function App() {
                       const currentCatSize_inner = CAT_SIZE * scale_inner;
                       const playerRadius_inner = currentCatSize_inner * HITBOX_SCALE;
                       
-                      if (Math.hypot(p_inner.x - e.x, p_inner.y - e.y) < playerRadius_inner + 80) {
+                      const pdx_inner = p_inner.x - e.x;
+                      const pdy_inner = p_inner.y - e.y;
+                      const pdistSq_inner = pdx_inner * pdx_inner + pdy_inner * pdy_inner;
+                      const combinedRadius_inner = playerRadius_inner + 80;
+                      
+                      if (pdistSq_inner < combinedRadius_inner * combinedRadius_inner) {
                          if (p_inner.shield > 0) {
                             p_inner.shield--;
                          } else {
@@ -2116,8 +2168,12 @@ export default function App() {
           const currentCatSize = CAT_SIZE * scale;
           const playerRadius = currentCatSize * HITBOX_SCALE; // Hitbox set to HITBOX_SCALE of visual size
           
-          const dist = Math.hypot(p.x - b.x, p.y - b.y);
-          if (dist < playerRadius + 5) {
+          const pdx = p.x - b.x;
+          const pdy = p.y - b.y;
+          const pdistSq = pdx * pdx + pdy * pdy;
+          const combinedRadius = playerRadius + 5;
+          
+          if (pdistSq < combinedRadius * combinedRadius) {
             hit = true;
             if (p.shield > 0) {
               p.shield--;
@@ -2189,13 +2245,17 @@ export default function App() {
           const currentCatSize = CAT_SIZE * scale;
           const playerRadius = currentCatSize * HITBOX_SCALE; // Hitbox set to HITBOX_SCALE of visual size
           
-          const dist = Math.hypot(p.x - item.x, p.y - item.y);
-          if (dist < playerRadius + 15) {
+          const pdx = p.x - item.x;
+          const pdy = p.y - item.y;
+          const pdistSq = pdx * pdx + pdy * pdy;
+          const combinedRadius = playerRadius + 15;
+          
+          if (pdistSq < combinedRadius * combinedRadius) {
             hit = true;
             playSound('powerup');
             if (item.type === 'FEVER') {
               vibrate([50, 30, 50]);
-              state.feverTime = FEVER_DURATION_BASE + state.squadSkills.feverDuration; // 5 seconds fever + bonus
+              state.feverTime = FEVER_DURATION_BASE + (state.squadSkills.feverDuration * SKILL_PROPS.feverDuration.duration * 60); // 5 seconds fever + bonus
               playSound('fever');
               if (p.count < PLAYER_MAX_HP + state.squadSkills.maxHp) {
                  p.count++;
@@ -2381,12 +2441,12 @@ export default function App() {
         }
         
         // Draw Staff Roll (Credits)
-        const creditsY = CANVAS_HEIGHT - (1800 - state.creditsTimer) * 0.5;
+        const creditsY = CANVAS_HEIGHT - (1800 - state.creditsTimer) * 1.0;
         ctx.fillStyle = '#FFF';
         ctx.font = 'bold 24px Inter';
         ctx.textAlign = 'center';
         const credits = [
-          "THE ULTIMATE VOID DEFEATED!",
+          "ANCIENT CORE DEFEATED!",
           "",
           "CONGRATULATIONS",
           "",
@@ -2394,6 +2454,11 @@ export default function App() {
           "Director: AI Studio",
           "Artist: AI Studio",
           "Programmer: AI Studio",
+          "Sound: AI Studio",
+          "QA: AI Studio",
+          "",
+          "SPECIAL THANKS",
+          "You",
           "",
           "THANK YOU FOR PLAYING!"
         ];
@@ -2442,6 +2507,10 @@ export default function App() {
         // Draw two images for seamless scrolling
         ctx.drawImage(bgImg, 0, scrollY, CANVAS_WIDTH, CANVAS_HEIGHT);
         ctx.drawImage(bgImg, 0, scrollY - CANVAS_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT);
+        
+        // Add a dark overlay to all backgrounds to make boss bullets more visible
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
       } else {
         // Fallback Gradient Background
         const bgGrad = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
@@ -2666,10 +2735,10 @@ export default function App() {
         let auraColor = 'rgba(255, 0, 0, 0.6)';
         let shadowColor = '#ff0000';
         
-        // Inferno King (FIRE) uses sky blue aura
+        // Inferno King (FIRE) uses purple aura
         if (b.type === 'FIRE') {
-          auraColor = 'rgba(135, 206, 235, 0.6)';
-          shadowColor = '#87CEEB';
+          auraColor = 'rgba(128, 0, 128, 0.6)'; // Purple
+          shadowColor = '#800080'; // Purple
         }
         
         ctx.beginPath();
@@ -3116,39 +3185,82 @@ export default function App() {
       // Draw Score HUD
       if (state.status === 'PLAYING') {
         const scoreText = `🏆 ${state.score}  |  Stage ${state.stage}`;
-        ctx.font = 'bold 20px Inter';
+        const p = state.players[0];
+        let attackSpeedText = "⚡ -- APS";
+        let damageText = "⚔️ -- ATK";
+        let critText = "🎯 -- CRIT";
+        let pierceText = "🏹 -- PIERCE";
+        
+        if (p) {
+          // Attack Speed
+          const growth = CHARACTER_GROWTH[p.character] || CHARACTER_GROWTH.cat;
+          const playerStage = getPlayerStage(p.count);
+          const levelStats = growth.upgradeStats[playerStage];
+
+          let calculatedFireRate = FIRE_RATE;
+          const apsBonus = growth.baseApsBonus + levelStats.aps;
+          calculatedFireRate = Math.max(3, Math.floor(calculatedFireRate * (1 - apsBonus)));
+          calculatedFireRate = Math.max(4, Math.floor(calculatedFireRate * Math.pow(1 - (SKILL_PROPS.attackSpeed.speed / 100), (upgradesRef.current.attackSpeed || 0) + state.squadSkills.attackSpeed + state.squadSkills.ghostBullets)));
+          calculatedFireRate = Math.max(2, Math.floor(calculatedFireRate / PLAYER_ATTACK_SPEED_MULTIPLIER));
+          const currentFireRate = state.feverTime > 0 ? Math.max(2, Math.floor(calculatedFireRate / FEVER_ATTACK_SPEED_MULTIPLIER)) : calculatedFireRate;
+          const attackSpeed = (1 / currentFireRate) * 60;
+          attackSpeedText = `⚡ ${attackSpeed.toFixed(1)} APS`;
+          
+          // Attack Power
+          const damageMultiplier = (1 + (upgradesRef.current.damageUp || 0) * (SKILL_PROPS.damageUp.damage / 100)) * Math.pow(1 + (SKILL_PROPS.damageUp.damage / 100), state.squadSkills.damageUp) * PLAYER_DAMAGE_MULTIPLIER * (1 + growth.baseDamageBonus);
+          const baseDamage = BASE_PLAYER_DAMAGE + levelStats.damage;
+          const damage = (state.feverTime > 0 ? FEVER_DAMAGE_MULTIPLIER : 1) * damageMultiplier * baseDamage * BULLET_POWER_MULTIPLIER;
+          damageText = `⚔️ ${damage.toFixed(1)} ATK`;
+          
+          // Crit Chance
+          const critChance = ((state.squadSkills.critChance + (upgradesRef.current.critChance || 0)) * SKILL_PROPS.critChance.chance + levelStats.critChance + growth.baseCritBonus);
+          critText = `🎯 ${critChance}% CRIT`;
+
+          // Pierce Prob
+          const pierceCount = state.squadSkills.pierce + state.squadSkills.ghostBullets + (upgradesRef.current.pierce || 0);
+          const pierceProb = (pierceCount * PIERCE_PROBABILITY_PER_LEVEL) + growth.basePierceBonus + levelStats.pierce;
+          pierceText = `🏹 ${(pierceProb * 100).toFixed(0)}% PIERCE`;
+        }
+
+        ctx.font = 'bold 16px Inter';
         const textWidth = ctx.measureText(scoreText).width;
         const bgWidth = Math.max(200, textWidth + 40);
 
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.beginPath(); ctx.roundRect(10, 10, bgWidth, 40, 20); ctx.fill();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.beginPath(); ctx.roundRect(10, 10, bgWidth, 130, 15); ctx.fill();
         ctx.fillStyle = '#FFF'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
         ctx.fillText(scoreText, 25, 30);
         
+        ctx.font = 'bold 14px Inter';
+        ctx.fillStyle = '#FFD700'; ctx.fillText(attackSpeedText, 25, 55);
+        ctx.fillStyle = '#FF4444'; ctx.fillText(damageText, 25, 75);
+        ctx.fillStyle = '#44FF44'; ctx.fillText(critText, 25, 95);
+        ctx.fillStyle = '#44FFFF'; ctx.fillText(pierceText, 25, 115);
+        
         if (state.combo > 1) {
           ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-          ctx.beginPath(); ctx.roundRect(10, 60, 160, 40, 20); ctx.fill();
+          ctx.beginPath(); ctx.roundRect(10, 150, 160, 40, 20); ctx.fill();
           ctx.fillStyle = '#FFD700'; ctx.font = 'bold 20px Inter';
-          ctx.fillText(`🔥 ${state.combo} COMBO`, 25, 80);
+          ctx.fillText(`🔥 ${state.combo} COMBO`, 25, 170);
           
           // Combo timer bar
           ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-          ctx.fillRect(20, 92, 140, 4);
+          ctx.fillRect(20, 182, 140, 4);
           ctx.fillStyle = '#FFD700';
-          ctx.fillRect(20, 92, 140 * (state.comboTimer / 120), 4);
+          ctx.fillRect(20, 182, 140 * (state.comboTimer / 120), 4);
         }
 
         if (state.feverTime > 0) {
           ctx.fillStyle = 'rgba(255, 0, 255, 0.5)';
-          ctx.beginPath(); ctx.roundRect(10, 110, 160, 40, 20); ctx.fill();
+          ctx.beginPath(); ctx.roundRect(10, 205, 160, 40, 20); ctx.fill();
           ctx.fillStyle = '#FFFF00'; ctx.font = 'bold 20px Inter';
-          ctx.fillText(`⚡ FEVER!`, 25, 130);
+          ctx.fillText(`⚡ FEVER!`, 25, 225);
           
           // Fever timer bar
           ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-          ctx.fillRect(20, 142, 140, 4);
+          ctx.fillRect(20, 237, 140, 4);
           ctx.fillStyle = '#FFFF00';
-          ctx.fillRect(20, 142, 140 * (state.feverTime / 300), 4);
+          ctx.fillRect(20, 237, 140 * (state.feverTime / 300), 4);
         }
 
         // Coin HUD
@@ -3421,7 +3533,7 @@ export default function App() {
                                 {char === 'cat' ? '공속' : char === 'rabbit' ? '관통' : char === 'rat' ? '치명' : '공격'}
                               </span>
                               <span className="text-[7px] text-slate-500 font-medium">
-                                {char === 'cat' ? '+10%' : char === 'rabbit' ? '+10%' : char === 'rat' ? '+5%' : '+10%'}
+                                {char === 'cat' ? `+${(CHARACTER_GROWTH.cat.baseApsBonus * 100).toFixed(0)}%` : char === 'rabbit' ? `+${(CHARACTER_GROWTH.rabbit.basePierceBonus * 100).toFixed(0)}%` : char === 'rat' ? `+${CHARACTER_GROWTH.rat.baseCritBonus}%` : `+${(CHARACTER_GROWTH.dog.baseDamageBonus * 100).toFixed(0)}%`}
                               </span>
                             </div>
                           </div>
