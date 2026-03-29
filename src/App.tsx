@@ -5,7 +5,7 @@ import {
   CANVAS_WIDTH, CANVAS_HEIGHT, CAT_SIZE, HITBOX_SCALE, PLAYER_CIRCLE_SCALE, PLAYER_IMAGE_SCALE, PLAYER_SPEED,
   FIRE_RATE, BULLET_SPEED, BULLET_SPAWN_OFFSET_Y, BULLET_MAX_SPREAD_RATIO, FIRING_CIRCLE_SCALE,
   PLAYER_MAX_HP, CHAR_UPGRADE_HP_1, CHAR_UPGRADE_HP_2, CHAR_UPGRADE_HP_3, CHAR_UPGRADE_HP_4,
-  BOSS_HP_MULTIPLIER, BOSS_BULLET_COUNT_MULTIPLIER, BULLET_POWER_MULTIPLIER, FEVER_SPEED_MULTIPLIER, FEVER_COMBO_THRESHOLD,
+  BOSS_HP_MULTIPLIER, BOSS_BULLET_COUNT_MULTIPLIER, BOSS_MINION_SPAWN_MULTIPLIER, BULLET_POWER_MULTIPLIER, FEVER_SPEED_MULTIPLIER, FEVER_COMBO_THRESHOLD,
   LEVEL_UP_ATTACK_SPEED_INCREASE, LEVEL_UP_BULLET_SIZE_INCREASE, FEVER_DAMAGE_MULTIPLIER,
   FEVER_ATTACK_SPEED_MULTIPLIER, BOSS_DAMAGE_MULTIPLIER, BULLET_COUNT_HP_THRESHOLD, MAX_DRONES,
   MAX_SHIELDS, MAX_BOMBS,
@@ -1270,7 +1270,7 @@ export default function App() {
               const stageIndex = Math.min(STAGES.length - 1, state.stage - 1);
               const currentStage = STAGES[stageIndex];
               const enemyTypes = currentStage.enemyTypes;
-              const spawnCount = 1 + stage; 
+              const spawnCount = Math.max(1, Math.floor((1 + stage) * BOSS_MINION_SPAWN_MULTIPLIER)); 
               for (let i = 0; i < spawnCount; i++) {
                 const type = enemyTypes[Math.floor(Math.random() * enemyTypes.length)] as 'NORMAL' | 'FIRE' | 'WATER' | 'ICE' | 'POISON' | 'BOMB' | 'ARCHER';
                 const spawnDelay = Math.floor(Math.random() * 300); // 0-5 seconds delay (60fps)
